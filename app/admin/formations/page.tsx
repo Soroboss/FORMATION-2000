@@ -46,7 +46,7 @@ export default async function AdminFormationsPage({
         />
       ) : (
         <div className="ui-card overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-canvas-border bg-canvas/60 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3">Titre</th>

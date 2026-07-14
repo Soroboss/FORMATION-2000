@@ -155,21 +155,21 @@ export default async function LessonPage({
         </Link>
       </div>
 
-      <nav className="flex items-center justify-between gap-3">
+      <nav className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {previous ? (
           <Link
             href={`/app/formations/${course.slug}/lecons/${previous.id}`}
-            className="text-sm font-semibold text-brand-600 hover:underline"
+            className="min-w-0 truncate text-sm font-semibold text-brand-600 hover:underline sm:max-w-[45%]"
           >
             ← {previous.title}
           </Link>
         ) : (
-          <span />
+          <span className="hidden sm:block" />
         )}
         {next ? (
           <Link
             href={`/app/formations/${course.slug}/lecons/${next.id}`}
-            className="text-sm font-semibold text-brand-600 hover:underline"
+            className="min-w-0 truncate text-sm font-semibold text-brand-600 hover:underline sm:max-w-[45%] sm:text-right"
           >
             {next.title} →
           </Link>

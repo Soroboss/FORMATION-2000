@@ -86,19 +86,19 @@ export default async function TableauDeBordPage() {
           </div>
         </dl>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {!hasPremium ? (
             <>
               <Link
                 href="/paiement"
-                className="inline-flex h-11 items-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
               >
                 <CreditCard className="h-4 w-4" strokeWidth={2} aria-hidden />
                 S&apos;abonner — 2 000 FCFA
               </Link>
               <Link
                 href="/paiement/manuel"
-                className="inline-flex h-11 items-center rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+                className="inline-flex h-11 w-full items-center justify-center rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
               >
                 Payer via WhatsApp
               </Link>
@@ -106,7 +106,7 @@ export default async function TableauDeBordPage() {
           ) : resumePath ? (
             <Link
               href={resumePath}
-              className="inline-flex h-11 items-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
             >
               <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
               Reprendre
@@ -114,7 +114,7 @@ export default async function TableauDeBordPage() {
           ) : (
             <Link
               href="/app/catalogue"
-              className="inline-flex h-11 items-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
             >
               <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
               {hasCourses ? "Continuer" : "Choisir une formation"}
@@ -122,7 +122,7 @@ export default async function TableauDeBordPage() {
           )}
           <Link
             href="/app/catalogue"
-            className="inline-flex h-11 items-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
           >
             <Compass className="h-4 w-4" strokeWidth={2} aria-hidden />
             Catalogue & catégories
@@ -130,7 +130,7 @@ export default async function TableauDeBordPage() {
           {hasCourses ? (
             <Link
               href="/app/mes-formations"
-              className="inline-flex h-11 items-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
             >
               <BookOpen className="h-4 w-4" strokeWidth={2} aria-hidden />
               Mes formations

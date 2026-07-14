@@ -74,7 +74,7 @@ export function BrandLogo({
         <span className="font-display text-base font-bold tracking-tight text-brand-600 sm:text-lg">
           Learnoon
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-ink sm:text-[11px]">
+        <span className="hidden text-[10px] font-semibold uppercase tracking-[0.22em] text-ink min-[380px]:inline sm:text-[11px]">
           Academy
         </span>
         {withTagline ? (

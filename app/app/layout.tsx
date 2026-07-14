@@ -52,21 +52,24 @@ export default async function LearnerAppLayout({ children }: { children: React.R
           </div>
         </div>
       ) : null}
-      <header className="border-b border-canvas-border bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <BrandLogo href="/app/tableau-de-bord" />
-          <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-ink-muted sm:inline">{display}</span>
+      <header className="sticky top-0 z-30 border-b border-canvas-border bg-white/90 backdrop-blur supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:h-16 sm:px-6">
+          <BrandLogo href="/app/tableau-de-bord" className="min-w-0" />
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <span className="hidden max-w-[10rem] truncate text-sm text-ink-muted md:inline">
+              {display}
+            </span>
             <form action={logoutAction}>
-              <Button type="submit" variant="ghost" size="sm">
-                Déconnexion
+              <Button type="submit" variant="ghost" size="sm" className="px-2 sm:px-3">
+                <span className="sm:hidden">Sortir</span>
+                <span className="hidden sm:inline">Déconnexion</span>
               </Button>
             </form>
           </div>
         </div>
       </header>
-      <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_1fr]">
-        <aside className="ui-card h-fit p-3">
+      <div className="mx-auto grid max-w-6xl gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6 md:grid-cols-[220px_1fr]">
+        <aside className="ui-card h-fit p-3 md:sticky md:top-20 md:self-start">
           <LearnerNav />
         </aside>
         <div className="min-w-0">{children}</div>

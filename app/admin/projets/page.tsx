@@ -51,7 +51,10 @@ export default async function AdminProjetsPage() {
                   Lien livrable
                 </a>
               ) : null}
-              <form action={reviewSubmissionAction} className="mt-4 grid gap-2 sm:grid-cols-4">
+              <form
+                action={reviewSubmissionAction}
+                className="mt-4 grid gap-2 md:grid-cols-2 lg:grid-cols-4"
+              >
                 <input type="hidden" name="submissionId" value={s.id} />
                 <select
                   name="status"

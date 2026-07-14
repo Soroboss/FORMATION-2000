@@ -106,7 +106,17 @@ export function LessonVideoStudio({
   const [ready, setReady] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
   const [theater, setTheater] = useState(false);
-  const [notesOpen, setNotesOpen] = useState(true);
+  // Notes open by default on larger screens; mobile starts closed to keep video first
+  const [notesOpen, setNotesOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setNotesOpen(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   const destroyPlayer = useCallback(() => {
     try {
@@ -230,7 +240,7 @@ export function LessonVideoStudio({
         <div
           className={cn(
             "w-full overflow-hidden rounded-2xl border border-[#2a241c] bg-[#0c0a09] shadow-[0_24px_80px_-32px_rgba(20,12,4,0.7)]",
-            theater && "max-h-[100dvh] max-w-7xl border-white/10",
+            theater && "max-h-[100dvh] max-w-7xl overflow-y-auto border-white/10",
           )}
         >
           <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
@@ -256,7 +266,7 @@ export function LessonVideoStudio({
             className={cn(
               "grid",
               showNotes && notesOpen
-                ? "lg:grid-cols-[minmax(0,1.5fr)_minmax(260px,0.72fr)]"
+                ? "md:grid-cols-[minmax(0,1.5fr)_minmax(240px,0.72fr)]"
                 : "grid-cols-1",
             )}
           >
@@ -397,8 +407,10 @@ export function LessonVideoStudio({
             {showNotes && notesOpen ? (
               <div
                 className={cn(
-                  "border-t border-white/10 p-3 lg:border-l lg:border-t-0",
-                  theater && "max-h-[min(68vh,700px)] overflow-hidden",
+                  "border-t border-white/10 p-3 md:border-l md:border-t-0",
+                  theater
+                    ? "max-h-[min(40vh,360px)] overflow-y-auto md:max-h-[min(68vh,700px)]"
+                    : "",
                 )}
               >
                 <LessonNotesPad
@@ -407,7 +419,9 @@ export function LessonVideoStudio({
                   initialNote={initialNote}
                   variant="side"
                   className={
-                    theater ? "h-full min-h-[280px]" : "min-h-[260px] lg:h-full lg:min-h-[320px]"
+                    theater
+                      ? "min-h-[220px] md:h-full md:min-h-[280px]"
+                      : "min-h-[220px] md:h-full md:min-h-[300px]"
                   }
                 />
               </div>

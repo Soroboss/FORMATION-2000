@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { ShellNav } from "@/components/app/shell-nav";
 
 const nav = [
-  { href: "/app/tableau-de-bord", label: "Tableau de bord" },
+  { href: "/app/tableau-de-bord", label: "Tableau de bord", exact: true },
   { href: "/app/catalogue", label: "Catalogue" },
   { href: "/app/mes-formations", label: "Mes formations" },
   { href: "/app/progression", label: "Progression" },
@@ -21,32 +19,5 @@ const nav = [
 ];
 
 export function LearnerNav() {
-  const pathname = usePathname();
-
-  return (
-    <nav
-      aria-label="Navigation apprenant"
-      className="flex flex-row gap-1 overflow-x-auto lg:flex-col"
-    >
-      {nav.map((item) => {
-        const active =
-          pathname === item.href ||
-          (item.href !== "/app/tableau-de-bord" && pathname.startsWith(item.href));
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "whitespace-nowrap rounded-soft px-3 py-2 text-sm font-medium transition",
-              active
-                ? "bg-brand-600 text-white"
-                : "text-ink hover:bg-brand-50 hover:text-brand-700",
-            )}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  return <ShellNav items={nav} ariaLabel="Navigation apprenant" />;
 }

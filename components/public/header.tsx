@@ -25,7 +25,7 @@ export async function PublicHeader() {
           </Link>
           <Link
             href="/categories"
-            className="hidden text-sm font-medium text-slate-700 hover:text-brand-800 md:inline"
+            className="text-sm font-medium text-slate-700 hover:text-brand-800"
           >
             Catégories
           </Link>

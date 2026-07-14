@@ -65,7 +65,7 @@ export default async function AppCataloguePage({
           <div className="flex items-end justify-between gap-3">
             <h2 className="font-display text-xl font-bold text-ink">Catégories</h2>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {categories.map((category, index) => (
               <CategoryCard
                 key={category.id}
@@ -100,7 +100,7 @@ export default async function AppCataloguePage({
                 {courses.length} résultat{courses.length > 1 ? "s" : ""} pour « {params.q} »
               </p>
             ) : null}
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {courses.map((course) => (
                 <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
               ))}

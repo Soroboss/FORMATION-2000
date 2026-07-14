@@ -47,34 +47,36 @@ export default async function AdminMembresPage({
         <InviteCollaboratorForm assignableRoles={assignableRoles.filter((r) => r !== "learner")} />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/admin/membres"
-          className={`rounded-brand px-3 py-1.5 text-sm font-semibold ${
-            view === "all" ? "bg-brand-600 text-white" : "border border-canvas-border text-ink"
-          }`}
-        >
-          Tous ({allMembers.length})
-        </Link>
-        <Link
-          href="/admin/membres?view=staff"
-          className={`rounded-brand px-3 py-1.5 text-sm font-semibold ${
-            view === "staff" ? "bg-brand-600 text-white" : "border border-canvas-border text-ink"
-          }`}
-        >
-          Équipe ({staff.length})
-        </Link>
-        <form className="ml-auto flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/admin/membres"
+            className={`rounded-brand px-3 py-1.5 text-sm font-semibold ${
+              view === "all" ? "bg-brand-600 text-white" : "border border-canvas-border text-ink"
+            }`}
+          >
+            Tous ({allMembers.length})
+          </Link>
+          <Link
+            href="/admin/membres?view=staff"
+            className={`rounded-brand px-3 py-1.5 text-sm font-semibold ${
+              view === "staff" ? "bg-brand-600 text-white" : "border border-canvas-border text-ink"
+            }`}
+          >
+            Équipe ({staff.length})
+          </Link>
+        </div>
+        <form className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
           {view === "staff" ? <input type="hidden" name="view" value="staff" /> : null}
           <input
             name="q"
             defaultValue={params.q ?? ""}
             placeholder="Rechercher e-mail ou nom…"
-            className="h-10 rounded-lg border border-slate-300 px-3 text-sm"
+            className="h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 text-sm sm:min-w-[220px]"
           />
           <button
             type="submit"
-            className="h-10 rounded-brand bg-slate-900 px-3 text-sm font-semibold text-white"
+            className="h-10 shrink-0 rounded-brand bg-slate-900 px-3 text-sm font-semibold text-white"
           >
             Filtrer
           </button>
@@ -92,7 +94,7 @@ export default async function AdminMembresPage({
         />
       ) : (
         <div className="ui-card overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-canvas-border bg-canvas/60 text-xs uppercase tracking-wide text-ink-muted">
               <tr>
                 <th className="px-4 py-3">Membre</th>

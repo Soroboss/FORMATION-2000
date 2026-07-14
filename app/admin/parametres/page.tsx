@@ -336,7 +336,7 @@ export default async function AdminParametresPage() {
 
         <div className="overflow-x-auto pt-2">
           <p className="mb-2 text-sm font-semibold text-ink">Matrice des permissions</p>
-          <table className="min-w-full text-left text-xs">
+          <table className="w-full min-w-[640px] text-left text-xs">
             <thead className="border-b border-canvas-border text-ink-muted">
               <tr>
                 <th className="px-2 py-2">Rôle</th>

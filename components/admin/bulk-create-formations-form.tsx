@@ -77,7 +77,7 @@ export function BulkCreateFormationsForm({
         {rows.map((row, index) => (
           <div
             key={row.key}
-            className="grid gap-2 rounded-soft border border-canvas-border bg-canvas/40 p-3 sm:grid-cols-[1fr_1.4fr_auto_auto] sm:items-end"
+            className="grid gap-2 rounded-soft border border-canvas-border bg-canvas/40 p-3 md:grid-cols-[1fr_1.4fr_auto_auto] md:items-end"
           >
             <label className="block text-sm">
               <span className="font-medium text-ink">Titre {index + 1}</span>

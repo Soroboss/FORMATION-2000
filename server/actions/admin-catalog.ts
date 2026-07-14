@@ -190,16 +190,20 @@ export async function deleteCourseAction(formData: FormData): Promise<void> {
 }
 
 export async function saveModuleAction(formData: FormData): Promise<void> {
+  const courseId = formString(formData, "courseId");
+  const back = courseId ? `/admin/formations/${courseId}` : "/admin/formations";
   try {
     const session = await requireAdminSession();
     const parsed = moduleUpsertSchema.safeParse({
-      courseId: formString(formData, "courseId"),
+      courseId,
       title: formString(formData, "title"),
       description: formString(formData, "description"),
       sortOrder: formString(formData, "sortOrder") || 0,
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirect(
+        `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Données invalides")}`,
+      );
     }
     const id = formString(formData, "id") || undefined;
     const mod = await upsertModule({ id, ...parsed.data });
@@ -210,16 +214,19 @@ export async function saveModuleAction(formData: FormData): Promise<void> {
       entityId: mod.id,
     });
     revalidatePath(`/admin/formations/${parsed.data.courseId}`);
-    return;
+    redirect(`${back}?ok=${encodeURIComponent("Module enregistré")}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
 export async function saveLessonAction(formData: FormData): Promise<void> {
+  const courseId = formString(formData, "courseId");
+  const back = courseId ? `/admin/formations/${courseId}` : "/admin/formations";
   try {
     const session = await requireAdminSession();
-    const courseId = formString(formData, "courseId");
     const lessonType = formString(formData, "lessonType") || "youtube";
     const youtubeUrl = formString(formData, "youtubeUrl");
     const statusRaw = formString(formData, "status");
@@ -240,10 +247,12 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
       originalTitle: formString(formData, "originalTitle"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirect(
+        `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Données invalides")}`,
+      );
     }
     if (parsed.data.lessonType === "youtube" && !parsed.data.youtubeUrl) {
-      throw new Error("Ajoutez le lien YouTube de la vidéo");
+      redirect(`${back}?error=${encodeURIComponent("Ajoutez le lien YouTube de la vidéo")}`);
     }
     const id = formString(formData, "id") || undefined;
     const lesson = await upsertLesson({ id, ...parsed.data });
@@ -255,9 +264,11 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
       newValues: { title: lesson.title, youtubeUrl: lesson.youtubeUrl },
     });
     if (courseId) revalidatePath(`/admin/formations/${courseId}`);
-    return;
+    redirect(`${back}?ok=${encodeURIComponent("Leçon enregistrée")}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
@@ -266,10 +277,15 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
  * Crée un module par défaut si besoin.
  */
 export async function quickAddVideoLessonAction(formData: FormData): Promise<void> {
+  const courseId = formString(formData, "courseId");
+  const back = courseId
+    ? `/admin/formations/${courseId}`
+    : "/admin/formations";
+
   try {
     const session = await requireAdminSession();
     const parsed = quickAddVideoLessonSchema.safeParse({
-      courseId: formString(formData, "courseId"),
+      courseId,
       moduleId: formString(formData, "moduleId") || undefined,
       title: formString(formData, "title"),
       youtubeUrl: formString(formData, "youtubeUrl"),
@@ -280,24 +296,31 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
       publishCourse: formBool(formData, "publishCourse"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirect(
+        `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Données invalides")}`,
+      );
     }
 
-    const { courseId, title, youtubeUrl, visibility } = parsed.data;
+    const { title, youtubeUrl, visibility } = parsed.data;
     const targetModule = parsed.data.moduleId
       ? { id: parsed.data.moduleId }
-      : await ensureDefaultModule(courseId);
+      : await ensureDefaultModule(parsed.data.courseId);
 
     const existingLessons = await listLessonsForModule(targetModule.id);
+    // Prefer repairing a lesson that has no YouTube source yet (same title).
+    const orphan = existingLessons.find(
+      (l) => !l.youtubeUrl && l.title.trim().toLowerCase() === title.trim().toLowerCase(),
+    );
     const status = visibility === "draft" ? "draft" : "published";
     const isPreview = visibility === "preview";
 
     const lesson = await upsertLesson({
+      id: orphan?.id,
       moduleId: targetModule.id,
       title,
       lessonType: "youtube",
-      estimatedDurationMinutes: 0,
-      sortOrder: existingLessons.length,
+      estimatedDurationMinutes: orphan?.estimatedDurationMinutes ?? 0,
+      sortOrder: orphan?.sortOrder ?? existingLessons.length,
       isPreview,
       isRequired: true,
       status,
@@ -314,7 +337,7 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
 
     if (parsed.data.exerciseTitle?.trim() && parsed.data.exerciseInstructions?.trim()) {
       await upsertAssignmentForLesson({
-        courseId,
+        courseId: parsed.data.courseId,
         moduleId: targetModule.id,
         lessonId: lesson.id,
         title: parsed.data.exerciseTitle.trim(),
@@ -323,7 +346,7 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
     }
 
     if (parsed.data.publishCourse) {
-      await publishCourse(courseId);
+      await publishCourse(parsed.data.courseId);
     }
 
     await writeAuditLog({
@@ -339,13 +362,17 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
       },
     });
 
-    revalidatePath(`/admin/formations/${courseId}`);
+    revalidatePath(`/admin/formations/${parsed.data.courseId}`);
     revalidatePath("/admin/formations");
     revalidatePath("/formations");
     revalidatePath("/app");
-    return;
+    redirect(
+      `/admin/formations/${parsed.data.courseId}?ok=${encodeURIComponent("Vidéo ajoutée")}`,
+    );
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 

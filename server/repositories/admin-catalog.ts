@@ -415,7 +415,12 @@ export async function upsertLesson(input: {
 
   if (input.lessonType === "youtube" && input.youtubeUrl) {
     const videoId = extractYouTubeVideoId(input.youtubeUrl);
-    if (!videoId) throw new Error("Lien YouTube invalide");
+    if (!videoId) {
+      if (!input.id) {
+        await client.database.from("lessons").delete().eq("id", lessonId);
+      }
+      throw new Error("Lien YouTube invalide");
+    }
     youtubeUrl = youtubeWatchUrl(videoId);
     channelName = input.channelName || null;
     const ytPayload = {
@@ -428,12 +433,18 @@ export async function upsertLesson(input: {
       thumbnail_url: youtubeThumbnailUrl(videoId),
       embed_status: "unknown",
     };
-    const { error: ytError } = await client.database
-      .from("youtube_sources")
-      .upsert(ytPayload, { onConflict: "lesson_id" });
-    if (ytError) throw new Error(ytError.message);
 
-    await maybeSetCourseThumbnailFromModule(input.moduleId, ytPayload.thumbnail_url);
+    try {
+      await upsertYouTubeSource(client, ytPayload);
+      await maybeSetCourseThumbnailFromModule(input.moduleId, ytPayload.thumbnail_url);
+    } catch (ytError) {
+      if (!input.id) {
+        await client.database.from("lessons").delete().eq("id", lessonId);
+      }
+      throw ytError instanceof Error
+        ? ytError
+        : new Error("Impossible d’enregistrer la source YouTube");
+    }
   }
 
   return {
@@ -451,6 +462,46 @@ export async function upsertLesson(input: {
     youtubeUrl,
     channelName,
   };
+}
+
+async function upsertYouTubeSource(
+  client: Awaited<ReturnType<typeof getAdminDbClient>>,
+  payload: {
+    lesson_id: string;
+    youtube_video_id: string;
+    video_url: string;
+    channel_name: string | null;
+    channel_url: string | null;
+    original_title: string;
+    thumbnail_url: string;
+    embed_status: string;
+  },
+): Promise<void> {
+  const { data: existing } = await client.database
+    .from("youtube_sources")
+    .select("id")
+    .eq("lesson_id", payload.lesson_id)
+    .maybeSingle();
+
+  if (existing?.id) {
+    const { error } = await client.database
+      .from("youtube_sources")
+      .update({
+        youtube_video_id: payload.youtube_video_id,
+        video_url: payload.video_url,
+        channel_name: payload.channel_name,
+        channel_url: payload.channel_url,
+        original_title: payload.original_title,
+        thumbnail_url: payload.thumbnail_url,
+        embed_status: payload.embed_status,
+      })
+      .eq("lesson_id", payload.lesson_id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await client.database.from("youtube_sources").insert(payload);
+  if (error) throw new Error(error.message);
 }
 
 async function maybeSetCourseThumbnailFromModule(

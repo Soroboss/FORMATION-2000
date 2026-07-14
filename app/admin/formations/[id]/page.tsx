@@ -19,10 +19,13 @@ import { accessTypeLabel, courseStatusLabel, lessonTypeLabel } from "@/lib/admin
 
 export default async function AdminFormationDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { id } = await params;
+  const flash = await searchParams;
   const course = await getAdminCourse(id);
   if (!course) notFound();
 
@@ -47,6 +50,22 @@ export default async function AdminFormationDetailPage({
 
   return (
     <section className="space-y-8">
+      {flash.error ? (
+        <div
+          role="alert"
+          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {flash.error}
+        </div>
+      ) : null}
+      {flash.ok ? (
+        <div
+          role="status"
+          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+        >
+          {flash.ok}
+        </div>
+      ) : null}
       <div className="ui-card p-5 sm:p-6">
         <Link href="/admin/formations" className="text-sm font-semibold text-brand-600 hover:underline">
           ← Formations
@@ -149,7 +168,7 @@ export default async function AdminFormationDetailPage({
           <input
             name="youtubeUrl"
             required
-            type="url"
+            inputMode="url"
             placeholder="https://www.youtube.com/watch?v=… ou https://youtu.be/…"
             className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
           />

@@ -59,7 +59,7 @@ export const lessonUpsertSchema = z.object({
 export const quickAddVideoLessonSchema = z
   .object({
     courseId: z.string().uuid(),
-    moduleId: z.string().uuid().optional().or(z.literal("")),
+    moduleId: z.union([z.string().uuid(), z.literal("")]).optional(),
     title: z.string().trim().min(2, "Titre trop court").max(200),
     youtubeUrl: z.string().trim().min(8, "Lien YouTube requis").max(500),
     visibility: z.enum(["subscribers", "preview", "draft"]).default("subscribers"),

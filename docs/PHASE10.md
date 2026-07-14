@@ -36,9 +36,9 @@ Fermer la boucle **admin agit → apprenant voit** sans PSP : notifications in-a
 ## Hors scope
 
 - CinetPay live (clés PSP) — `docs/PAYMENTS_PRODUCTION.md`
-- E-mail / WhatsApp outbound
-- PDF / QR attestations
-- `support_messages`, cron expiration J-7
+- `support_messages`, cron expiration J-7 → **Phase 11** (`docs/PHASE11.md`)
+- E-mail / WhatsApp outbound → **Phase 11**
+- PDF / QR attestations → **Phase 11**
 
 ## Vérifications
 

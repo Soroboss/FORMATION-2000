@@ -68,11 +68,17 @@ export default async function SupportPage() {
         ) : (
           <ul className="mt-3 space-y-2">
             {tickets.map((t) => (
-              <li key={t.id} className="rounded-soft border border-canvas-border bg-canvas/50 p-3 text-sm">
-                <p className="font-medium text-ink">{t.subject}</p>
-                <p className="text-xs text-ink-muted">
-                  {t.status} · {new Date(t.createdAt).toLocaleString("fr-FR")}
-                </p>
+              <li key={t.id}>
+                <Link
+                  href={`/app/support/${t.id}`}
+                  className="block rounded-soft border border-canvas-border bg-canvas/50 p-3 text-sm transition hover:border-brand-300 hover:bg-brand-50/40"
+                >
+                  <p className="font-medium text-ink">{t.subject}</p>
+                  <p className="text-xs text-ink-muted">
+                    {t.status} · {new Date(t.createdAt).toLocaleString("fr-FR")}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-ink-muted">{t.message}</p>
+                </Link>
               </li>
             ))}
           </ul>

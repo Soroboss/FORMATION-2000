@@ -65,7 +65,8 @@ npx @insforge/cli db migrations up --all
 ## Phase discipline
 
 Ne pas implémenter plusieurs phases en une seule demande.
-Phase courante : **Phase 10 — Feedback apprenant** (`docs/PHASE10.md`).
-Paiements Mobile Money réels : brancher quand les clés PSP sont fournies (`docs/PAYMENTS_PRODUCTION.md`).
-Ne jamais activer un abonnement depuis une redirection client seule.
-Ne jamais simuler un paiement réussi en production Vercel.
+- Phase courante : **Phase 11 — Outbound / support / cron** (`docs/PHASE11.md`).
+- Paiements Mobile Money réels : brancher quand les clés PSP sont fournies (`docs/PAYMENTS_PRODUCTION.md`).
+- Ne jamais activer un abonnement depuis une redirection client seule.
+- Ne jamais simuler un paiement réussi en production Vercel.
+- E-mail transactionnel : uniquement `insforge.emails.send` (pas SMTP / Resend).

@@ -1,14 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth/session";
-import { createSupportTicket } from "@/server/repositories/support";
+import {
+  addSupportMessage,
+  createSupportTicket,
+  getSupportTicketForUser,
+} from "@/server/repositories/support";
 
 const ticketSchema = z.object({
   subject: z.string().trim().min(3).max(200),
   category: z.string().trim().max(80).optional(),
   message: z.string().trim().min(10).max(5000),
+});
+
+const replySchema = z.object({
+  ticketId: z.string().uuid(),
+  message: z.string().trim().min(2).max(5000),
 });
 
 export async function createSupportTicketAction(formData: FormData): Promise<void> {
@@ -21,9 +31,42 @@ export async function createSupportTicketAction(formData: FormData): Promise<voi
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
   }
-  await createSupportTicket({
+  const ticket = await createSupportTicket({
     userId: session.user.id,
     ...parsed.data,
   });
   revalidatePath("/app/support");
+  redirect(`/app/support/${ticket.id}`);
+}
+
+export async function replySupportTicketAsLearnerAction(formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const parsed = replySchema.safeParse({
+    ticketId: String(formData.get("ticketId") ?? ""),
+    message: String(formData.get("message") ?? ""),
+  });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+  }
+
+  const ticket = await getSupportTicketForUser({
+    ticketId: parsed.data.ticketId,
+    userId: session.user.id,
+  });
+  if (!ticket) throw new Error("Ticket introuvable");
+  if (ticket.status === "closed") {
+    throw new Error("Ce ticket est fermé");
+  }
+
+  await addSupportMessage({
+    ticketId: parsed.data.ticketId,
+    senderId: session.user.id,
+    message: parsed.data.message,
+    isInternal: false,
+  });
+
+  revalidatePath(`/app/support/${parsed.data.ticketId}`);
+  revalidatePath("/app/support");
+  revalidatePath(`/admin/support/${parsed.data.ticketId}`);
+  revalidatePath("/admin/support");
 }

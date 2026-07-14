@@ -62,6 +62,12 @@ export default async function CertificatsPage() {
                     >
                       Voir / vérifier
                     </Link>
+                    <a
+                      href={`/api/attestations/${cert.verificationToken}/pdf`}
+                      className="text-sm font-semibold text-brand-600 hover:underline"
+                    >
+                      PDF + QR
+                    </a>
                     <CopyVerifyLinkButton url={verifyUrl} />
                   </div>
                 </li>

@@ -116,10 +116,8 @@ export async function completeLessonAction(formData: FormData): Promise<Learning
       });
       certificate = issued?.certificate ?? null;
       if (issued?.newlyIssued) {
-        const { createNotification } = await import(
-          "@/server/repositories/notifications"
-        );
-        await createNotification({
+        const { notifyUser } = await import("@/server/services/notify");
+        await notifyUser({
           userId: session.user.id,
           type: "certificate_issued",
           title: "Attestation disponible",

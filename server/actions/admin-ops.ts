@@ -29,7 +29,10 @@ import {
   activateOrExtendSubscription,
   getPlanBySlug,
 } from "@/server/repositories/payments";
-import { updateSupportTicketStatus } from "@/server/repositories/support";
+import {
+  getSupportTicketForStaff,
+  updateSupportTicketStatus,
+} from "@/server/repositories/support";
 import {
   assertCanAssignRole,
   canManageMemberRoles,
@@ -275,8 +278,8 @@ export async function activateLearnerAccessAction(formData: FormData): Promise<v
       },
     });
 
-    const { createNotification } = await import("@/server/repositories/notifications");
-    await createNotification({
+    const { notifyUser } = await import("@/server/services/notify");
+    await notifyUser({
       userId: parsed.data.userId,
       type: "subscription_activated",
       title: "Accès formations activé",
@@ -337,8 +340,8 @@ export async function reviewSubmissionAction(formData: FormData): Promise<void> 
       ? ` Commentaire : ${submission.reviewComment}`
       : "";
 
-    const { createNotification } = await import("@/server/repositories/notifications");
-    await createNotification({
+    const { notifyUser } = await import("@/server/services/notify");
+    await notifyUser({
       userId: submission.userId,
       type: "project_reviewed",
       title: `Exercice ${statusLabel}`,
@@ -385,17 +388,77 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
         resolved: "résolu",
         closed: "fermé",
       };
-      const { createNotification } = await import("@/server/repositories/notifications");
-      await createNotification({
+      const { notifyUser } = await import("@/server/services/notify");
+      await notifyUser({
         userId: result.userId,
         type: "support_update",
         title: "Mise à jour support",
         message: `Votre ticket est maintenant « ${statusLabel[parsed.data.status] ?? parsed.data.status} ».`,
-        actionUrl: "/app/support",
+        actionUrl: `/app/support/${parsed.data.ticketId}`,
       });
     }
     revalidatePath("/admin/support");
+    revalidatePath(`/admin/support/${parsed.data.ticketId}`);
     revalidatePath("/app/support");
+    revalidatePath(`/app/support/${parsed.data.ticketId}`);
+    revalidatePath("/app/notifications");
+    return;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+export async function replySupportTicketAction(formData: FormData): Promise<void> {
+  try {
+    const session = await requireAdminSession();
+    const ticketId = formString(formData, "ticketId");
+    const message = formString(formData, "message").trim();
+    if (!ticketId || message.length < 2) {
+      throw new Error("Message trop court");
+    }
+    if (message.length > 5000) throw new Error("Message trop long");
+
+    const ticket = await getSupportTicketForStaff(ticketId);
+    if (!ticket) throw new Error("Ticket introuvable");
+
+    const { addSupportMessage } = await import("@/server/repositories/support");
+    await addSupportMessage({
+      ticketId,
+      senderId: session.user.id,
+      message,
+      isInternal: false,
+    });
+
+    if (ticket.status === "open") {
+      await updateSupportTicketStatus({
+        ticketId,
+        status: "in_progress",
+        actorUserId: session.user.id,
+      });
+    }
+
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "support.ticket.reply",
+      entityType: "support_ticket",
+      entityId: ticketId,
+    });
+
+    if (ticket.userId) {
+      const { notifyUser } = await import("@/server/services/notify");
+      await notifyUser({
+        userId: ticket.userId,
+        type: "support_reply",
+        title: "Réponse du support",
+        message: `Nouvelle réponse sur « ${ticket.subject} ».`,
+        actionUrl: `/app/support/${ticketId}`,
+      });
+    }
+
+    revalidatePath("/admin/support");
+    revalidatePath(`/admin/support/${ticketId}`);
+    revalidatePath("/app/support");
+    revalidatePath(`/app/support/${ticketId}`);
     revalidatePath("/app/notifications");
     return;
   } catch (error) {

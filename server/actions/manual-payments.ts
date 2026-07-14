@@ -134,8 +134,8 @@ export async function approveManualPaymentAction(formData: FormData): Promise<vo
     },
   });
 
-  const { createNotification } = await import("@/server/repositories/notifications");
-  await createNotification({
+  const { notifyUser } = await import("@/server/services/notify");
+  await notifyUser({
     userId: request.userId,
     type: "payment_approved",
     title: "Paiement validé",
@@ -177,8 +177,8 @@ export async function rejectManualPaymentAction(formData: FormData): Promise<voi
     newValues: { reviewNote },
   });
 
-  const { createNotification } = await import("@/server/repositories/notifications");
-  await createNotification({
+  const { notifyUser } = await import("@/server/services/notify");
+  await notifyUser({
     userId: request.userId,
     type: "payment_rejected",
     title: "Paiement non validé",

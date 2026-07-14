@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCourseById } from "@/server/repositories/catalog";
 import { getCertificateByToken } from "@/server/repositories/certificates";
@@ -14,6 +15,8 @@ export default async function AttestationVerifyPage({
   const course = await getCourseById(certificate.courseId);
   const memberName = certificate.memberName;
   const courseTitle = certificate.courseTitle ?? course?.title ?? "Formation";
+  const pdfHref = `/api/attestations/${certificate.verificationToken}/pdf`;
+  const qrHref = `/api/attestations/${certificate.verificationToken}/qr`;
 
   return (
     <main className="mx-auto max-w-xl px-4 py-16">
@@ -53,6 +56,26 @@ export default async function AttestationVerifyPage({
           <dd className="mt-1 font-semibold text-progress-700">Valide</dd>
         </div>
       </dl>
+
+      <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={qrHref}
+          alt="QR code de vérification"
+          width={160}
+          height={160}
+          className="rounded-lg border border-slate-200 bg-white p-2"
+        />
+        <div className="space-y-3 text-sm">
+          <p className="text-slate-600">Scannez le QR pour vérifier cette attestation.</p>
+          <Link
+            href={pdfHref}
+            className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+          >
+            Télécharger le PDF
+          </Link>
+        </div>
+      </div>
     </main>
   );
 }

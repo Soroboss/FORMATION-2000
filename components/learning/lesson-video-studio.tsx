@@ -303,9 +303,6 @@ export function LessonVideoStudio({
                       <span className="rounded-full bg-black/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 backdrop-blur">
                         Lancer la leçon
                       </span>
-                      <span className="max-w-sm text-sm text-white/70">
-                        Lecteur officiel — les vues restent créditées à {credit}
-                      </span>
                     </div>
                   </button>
                 ) : null}

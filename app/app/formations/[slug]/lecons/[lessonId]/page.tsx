@@ -66,16 +66,16 @@ export default async function LessonPage({
 
   return (
     <section className="space-y-6">
-      <div>
+      <div className="ui-card p-5 sm:p-6">
         <Link
           href={`/app/formations/${course.slug}`}
-          className="text-sm font-medium text-brand-700 hover:underline"
+          className="text-sm font-medium text-brand-600 hover:underline"
         >
           ← {course.title}
         </Link>
-        <h1 className="mt-2 font-display text-2xl font-semibold text-slate-900">{lesson.title}</h1>
+        <h1 className="mt-2 font-display text-2xl font-bold text-ink">{lesson.title}</h1>
         {lesson.description ? (
-          <p className="mt-1 text-sm text-slate-600">{lesson.description}</p>
+          <p className="mt-1 text-sm text-ink-muted">{lesson.description}</p>
         ) : null}
         {progressStatus === "completed" ? (
           <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-progress-700">
@@ -93,23 +93,37 @@ export default async function LessonPage({
           channelUrl={lesson.youtube.channelUrl}
         />
       ) : (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-700">
-          <p className="font-semibold text-slate-900">Leçon verrouillée</p>
-          <p className="mt-2">
-            Cette leçon nécessite un abonnement actif. Les aperçus gratuits restent disponibles
-            dans le sommaire.
+        <div className="ui-card border-dashed border-action-200 bg-action-50/50 p-6 text-sm text-ink">
+          <p className="font-display font-semibold text-ink">Leçon verrouillée</p>
+          <p className="mt-2 text-ink-muted">
+            Cette leçon nécessite un abonnement actif (2&nbsp;000&nbsp;FCFA / 30 jours). Après
+            paiement, elle s&apos;ouvrira ici et la formation apparaîtra dans Mes formations.
           </p>
-          <Link
-            href="/app/abonnement"
-            className="mt-4 inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-          >
-            Voir l&apos;abonnement
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              href="/paiement"
+              className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              Payer maintenant
+            </Link>
+            <Link
+              href="/paiement/manuel"
+              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-white"
+            >
+              WhatsApp / Mobile Money
+            </Link>
+            <Link
+              href={`/app/formations/${course.slug}`}
+              className="inline-flex h-10 items-center rounded-brand border border-canvas-border px-4 text-sm font-semibold text-ink hover:bg-white"
+            >
+              Voir le parcours
+            </Link>
+          </div>
         </div>
       )}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h2 className="font-semibold text-slate-900">Sous la vidéo</h2>
+      <div className="ui-card p-5 sm:p-6">
+        <h2 className="font-display font-semibold text-ink">Sous la vidéo</h2>
         <div className="mt-4">
           <LessonInstructionsPanel instructions={lesson.instructions} redacted={!canWatch} />
         </div>
@@ -129,19 +143,19 @@ export default async function LessonPage({
             />
           </div>
         ) : null}
-        <a
-          href="/contact"
-          className="mt-4 inline-flex h-10 items-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        <Link
+          href="/app/support"
+          className="mt-4 inline-flex h-10 items-center rounded-brand border border-canvas-border px-4 text-sm font-semibold text-ink hover:bg-canvas"
         >
           Signaler un problème
-        </a>
+        </Link>
       </div>
 
       <nav className="flex items-center justify-between gap-3">
         {previous ? (
           <Link
             href={`/app/formations/${course.slug}/lecons/${previous.id}`}
-            className="text-sm font-semibold text-brand-700 hover:underline"
+            className="text-sm font-semibold text-brand-600 hover:underline"
           >
             ← {previous.title}
           </Link>
@@ -151,7 +165,7 @@ export default async function LessonPage({
         {next ? (
           <Link
             href={`/app/formations/${course.slug}/lecons/${next.id}`}
-            className="text-sm font-semibold text-brand-700 hover:underline"
+            className="text-sm font-semibold text-brand-600 hover:underline"
           >
             {next.title} →
           </Link>

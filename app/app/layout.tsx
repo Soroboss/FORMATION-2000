@@ -1,28 +1,13 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { BrandLogo } from "@/components/brand/logo";
+import { LearnerNav } from "@/components/app/learner-nav";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
   robots: { index: false, follow: false },
 };
-
-const nav = [
-  { href: "/app/tableau-de-bord", label: "Tableau de bord" },
-  { href: "/app/catalogue", label: "Catalogue" },
-  { href: "/app/mes-formations", label: "Mes formations" },
-  { href: "/app/progression", label: "Progression" },
-  { href: "/app/certificats", label: "Attestations" },
-  { href: "/app/notes", label: "Notes" },
-  { href: "/app/favoris", label: "Favoris" },
-  { href: "/app/projets", label: "Exercices" },
-  { href: "/app/abonnement", label: "Abonnement" },
-  { href: "/app/paiements", label: "Paiements" },
-  { href: "/app/support", label: "Support" },
-  { href: "/app/profil", label: "Profil" },
-];
 
 export default async function LearnerAppLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -36,12 +21,12 @@ export default async function LearnerAppLayout({ children }: { children: React.R
     session.user.email;
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
+    <div className="min-h-screen bg-canvas">
+      <header className="border-b border-canvas-border bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <BrandLogo href="/app/tableau-de-bord" />
           <div className="flex items-center gap-3">
-            <span className="hidden text-sm text-slate-600 sm:inline">{display}</span>
+            <span className="hidden text-sm text-ink-muted sm:inline">{display}</span>
             <form action={logoutAction}>
               <Button type="submit" variant="ghost" size="sm">
                 Déconnexion
@@ -51,20 +36,10 @@ export default async function LearnerAppLayout({ children }: { children: React.R
         </div>
       </header>
       <div className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[220px_1fr]">
-        <aside className="rounded-2xl border border-slate-200 bg-white p-3">
-          <nav aria-label="Navigation apprenant" className="flex flex-row gap-1 overflow-x-auto lg:flex-col">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-brand-50 hover:text-brand-700"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+        <aside className="ui-card h-fit p-3">
+          <LearnerNav />
         </aside>
-        <div>{children}</div>
+        <div className="min-w-0">{children}</div>
       </div>
     </div>
   );

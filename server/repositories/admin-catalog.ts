@@ -427,7 +427,6 @@ export async function upsertLesson(input: {
       original_title: input.originalTitle || input.title,
       thumbnail_url: youtubeThumbnailUrl(videoId),
       embed_status: "unknown",
-      attribution_required: true,
     };
     const { error: ytError } = await client.database
       .from("youtube_sources")

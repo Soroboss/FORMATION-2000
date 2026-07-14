@@ -54,12 +54,23 @@ export default async function FormationsPage({
       ) : null}
 
       {courses.length === 0 ? (
-        <p className="mt-10 text-sm text-slate-600">Aucune formation ne correspond à votre recherche.</p>
+        <p className="mt-10 text-sm text-slate-600">
+          {params.q
+            ? `Aucune formation ne correspond à « ${params.q} ».`
+            : "Aucune formation ne correspond à votre recherche."}
+        </p>
       ) : (
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} />
-          ))}
+        <div className="mt-10 space-y-4">
+          {params.q ? (
+            <p className="text-sm text-slate-600">
+              {courses.length} résultat{courses.length > 1 ? "s" : ""} pour « {params.q} »
+            </p>
+          ) : null}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
         </div>
       )}
     </section>

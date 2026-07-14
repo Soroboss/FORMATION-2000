@@ -167,6 +167,19 @@ export default async function AppFormationPage({
         </div>
       ) : null}
 
+      {course.requiredTools.length > 0 ? (
+        <div className="ui-card p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-ink">
+            Outils nécessaires
+          </h2>
+          <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-muted">
+            {course.requiredTools.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {course.finalProjectDescription || assignments.length > 0 ? (
         <div className="ui-card p-5 sm:p-6">
           <h2 className="font-display text-lg font-semibold text-ink">Exercices à faire</h2>

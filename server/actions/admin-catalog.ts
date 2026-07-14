@@ -89,6 +89,7 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       shortDescription: formString(formData, "shortDescription"),
       description: formString(formData, "description"),
       learningOutcomes: formString(formData, "learningOutcomes"),
+      requiredTools: formString(formData, "requiredTools"),
       finalProjectDescription: formString(formData, "finalProjectDescription"),
       thumbnailUrl: formString(formData, "thumbnailUrl"),
       categoryId: formString(formData, "categoryId") || undefined,
@@ -106,6 +107,10 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
+    const requiredTools = (parsed.data.requiredTools ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
     const course = await upsertCourse({
       id,
       title: parsed.data.title,
@@ -113,6 +118,7 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       shortDescription: parsed.data.shortDescription,
       description: parsed.data.description,
       learningOutcomes,
+      requiredTools,
       finalProjectDescription: parsed.data.finalProjectDescription,
       thumbnailUrl: parsed.data.thumbnailUrl,
       categoryId: parsed.data.categoryId || undefined,

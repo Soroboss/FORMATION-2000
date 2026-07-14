@@ -88,12 +88,23 @@ export default async function AppCataloguePage({
         />
 
         {courses.length === 0 ? (
-          <p className="ui-card p-5 text-sm text-ink-muted">Aucune formation trouvée.</p>
+          <p className="ui-card p-5 text-sm text-ink-muted">
+            {params.q
+              ? `Aucune formation ne correspond à « ${params.q} ». Essayez un autre mot-clé (titre, thème, outil…).`
+              : "Aucune formation trouvée."}
+          </p>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2">
-            {courses.map((course) => (
-              <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
-            ))}
+          <div className="space-y-3">
+            {params.q ? (
+              <p className="text-sm text-ink-muted">
+                {courses.length} résultat{courses.length > 1 ? "s" : ""} pour « {params.q} »
+              </p>
+            ) : null}
+            <div className="grid gap-6 sm:grid-cols-2">
+              {courses.map((course) => (
+                <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
+              ))}
+            </div>
           </div>
         )}
       </div>

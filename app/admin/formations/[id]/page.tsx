@@ -250,6 +250,19 @@ export default async function AdminFormationDetailPage({
           />
         </label>
         <label className="block text-sm">
+          <span className="font-medium">Outils nécessaires</span>
+          <textarea
+            name="requiredTools"
+            defaultValue={course.requiredTools.join("\n")}
+            rows={4}
+            placeholder={"Un outil par ligne\nEx. VS Code\nCompte Canva\nTéléphone Android"}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+          <span className="mt-1 block text-xs text-ink-muted">
+            Laissez vide s’il n’y a aucun outil particulier. Une ligne = un outil.
+          </span>
+        </label>
+        <label className="block text-sm">
           <span className="font-medium">Image de couverture (URL)</span>
           <input
             name="thumbnailUrl"

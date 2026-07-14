@@ -1,5 +1,9 @@
 import { tryCreateInsForgeServerClient } from "@/lib/insforge/server";
 import { getAccessToken } from "@/lib/auth/cookies";
+import {
+  courseMatchesSearchQuery,
+  scoreCourseSearchMatch,
+} from "@/lib/catalog/search";
 import type {
   Category,
   CourseDetail,
@@ -17,6 +21,21 @@ import type {
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
+}
+
+function normalizeCategoryJoin(
+  value: unknown,
+): { id: string; name: string; slug: string } | null {
+  if (!value) return null;
+  const row = Array.isArray(value) ? value[0] : value;
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+  if (!r.id || !r.name || !r.slug) return null;
+  return {
+    id: String(r.id),
+    name: String(r.name),
+    slug: String(r.slug),
+  };
 }
 
 async function getCatalogClient() {
@@ -40,7 +59,7 @@ function mapCourseListItem(
   row: Record<string, unknown>,
   lessonCount = 0,
 ): CourseListItem {
-  const categoryRow = row.categories as Record<string, unknown> | null | undefined;
+  const categoryRow = normalizeCategoryJoin(row.categories);
   return {
     id: String(row.id),
     title: String(row.title),
@@ -52,13 +71,7 @@ function mapCourseListItem(
     estimatedDurationMinutes: Number(row.estimated_duration_minutes ?? 0),
     accessType: (row.access_type as CourseAccessType) ?? "subscription",
     isFeatured: Boolean(row.is_featured),
-    category: categoryRow
-      ? {
-          id: String(categoryRow.id),
-          name: String(categoryRow.name),
-          slug: String(categoryRow.slug),
-        }
-      : null,
+    category: categoryRow,
     lessonCount,
   };
 }
@@ -177,10 +190,12 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   const client = await getCatalogClient();
   if (!client) return [];
 
+  const wantsSearch = Boolean(filters.q?.trim());
+
   let query = client.database
     .from("courses")
     .select(
-      "id, title, slug, short_description, thumbnail_url, level, language, estimated_duration_minutes, access_type, is_featured, category_id, categories(id, name, slug)",
+      "id, title, slug, short_description, description, thumbnail_url, level, language, estimated_duration_minutes, access_type, is_featured, category_id, learning_outcomes, required_tools, categories(id, name, slug)",
     )
     .eq("status", "published")
     .order("published_at", { ascending: false });
@@ -191,9 +206,6 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   if (filters.featured) {
     query = query.eq("is_featured", true);
   }
-  if (filters.q) {
-    query = query.ilike("title", `%${filters.q}%`);
-  }
   if (filters.categorySlug) {
     const category = await getCategoryBySlug(filters.categorySlug);
     if (!category) return [];
@@ -203,11 +215,59 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   const { data, error } = await query;
   if (error || !Array.isArray(data)) return [];
 
+  let rows = data as unknown as Record<string, unknown>[];
+
+  if (wantsSearch && filters.q) {
+    const q = filters.q.trim();
+    rows = rows
+      .filter((row) => {
+        const categoryRow = normalizeCategoryJoin(row.categories);
+        return courseMatchesSearchQuery(
+          {
+            title: String(row.title ?? ""),
+            shortDescription: (row.short_description as string | null) ?? null,
+            description: (row.description as string | null) ?? null,
+            slug: (row.slug as string | null) ?? null,
+            categoryName: categoryRow?.name ?? null,
+            learningOutcomes: Array.isArray(row.learning_outcomes)
+              ? (row.learning_outcomes as string[])
+              : [],
+            requiredTools: Array.isArray(row.required_tools)
+              ? (row.required_tools as string[])
+              : [],
+          },
+          q,
+        );
+      })
+      .sort((a, b) => {
+        const catA = normalizeCategoryJoin(a.categories);
+        const catB = normalizeCategoryJoin(b.categories);
+        const scoreA = scoreCourseSearchMatch(
+          {
+            title: String(a.title ?? ""),
+            shortDescription: (a.short_description as string | null) ?? null,
+            description: (a.description as string | null) ?? null,
+            categoryName: catA?.name ?? null,
+          },
+          q,
+        );
+        const scoreB = scoreCourseSearchMatch(
+          {
+            title: String(b.title ?? ""),
+            shortDescription: (b.short_description as string | null) ?? null,
+            description: (b.description as string | null) ?? null,
+            categoryName: catB?.name ?? null,
+          },
+          q,
+        );
+        return scoreB - scoreA;
+      });
+  }
+
   const items: CourseListItem[] = [];
-  for (const row of data) {
-    const record = row as Record<string, unknown>;
-    const lessonCount = await countLessonsForCourse(client, String(record.id));
-    items.push(mapCourseListItem(record, lessonCount));
+  for (const row of rows) {
+    const lessonCount = await countLessonsForCourse(client, String(row.id));
+    items.push(mapCourseListItem(row, lessonCount));
   }
   return items;
 }

@@ -24,6 +24,7 @@ export type AdminCourse = {
   shortDescription: string | null;
   description: string | null;
   learningOutcomes: string[];
+  requiredTools: string[];
   finalProjectDescription: string | null;
   thumbnailUrl: string | null;
   categoryId: string | null;
@@ -126,7 +127,7 @@ export async function listAdminCourses(): Promise<AdminCourse[]> {
   const { data } = await client.database
     .from("courses")
     .select(
-      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, required_tools, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .order("updated_at", { ascending: false });
   if (!Array.isArray(data)) return [];
@@ -138,7 +139,7 @@ export async function getAdminCourse(id: string): Promise<AdminCourse | null> {
   const { data } = await client.database
     .from("courses")
     .select(
-      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, required_tools, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
@@ -159,6 +160,7 @@ function mapCourse(row: Record<string, unknown>): AdminCourse {
     shortDescription: (row.short_description as string | null) ?? null,
     description: (row.description as string | null) ?? null,
     learningOutcomes: asStringArray(row.learning_outcomes),
+    requiredTools: asStringArray(row.required_tools),
     finalProjectDescription: (row.final_project_description as string | null) ?? null,
     thumbnailUrl: (row.thumbnail_url as string | null) ?? null,
     categoryId: (row.category_id as string | null) ?? null,
@@ -179,6 +181,7 @@ export async function upsertCourse(input: {
   shortDescription?: string;
   description?: string;
   learningOutcomes?: string[];
+  requiredTools?: string[];
   finalProjectDescription?: string;
   thumbnailUrl?: string;
   categoryId?: string;
@@ -197,6 +200,7 @@ export async function upsertCourse(input: {
     short_description: input.shortDescription || null,
     description: input.description || null,
     learning_outcomes: input.learningOutcomes ?? [],
+    required_tools: input.requiredTools ?? [],
     final_project_description: input.finalProjectDescription || null,
     thumbnail_url: input.thumbnailUrl || null,
     category_id: input.categoryId || null,
@@ -221,7 +225,7 @@ export async function upsertCourse(input: {
 
   const { data, error } = await query
     .select(
-      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, required_tools, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .single();
 

@@ -16,6 +16,7 @@ export const courseUpsertSchema = z.object({
   shortDescription: z.string().trim().max(500).optional().or(z.literal("")),
   description: z.string().trim().max(10000).optional().or(z.literal("")),
   learningOutcomes: z.string().trim().max(5000).optional().or(z.literal("")),
+  requiredTools: z.string().trim().max(5000).optional().or(z.literal("")),
   finalProjectDescription: z.string().trim().max(5000).optional().or(z.literal("")),
   thumbnailUrl: z.string().trim().max(1000).optional().or(z.literal("")),
   categoryId: z.string().uuid().optional().or(z.literal("")),

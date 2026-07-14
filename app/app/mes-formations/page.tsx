@@ -4,7 +4,7 @@ import { Compass, CreditCard } from "lucide-react";
 import { CategoryCard } from "@/components/learning/category-card";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { getCourseById, listCategories } from "@/server/repositories/catalog";
+import { getCourseById, listCategories, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
 
 export default async function MesFormationsPage() {
@@ -13,10 +13,11 @@ export default async function MesFormationsPage() {
     redirect("/connexion?next=/app/tableau-de-bord");
   }
 
-  const [enrollments, hasPremium, categories] = await Promise.all([
+  const [enrollments, hasPremium, categories, courseCountByCategory] = await Promise.all([
     listEnrollmentsForUser(session.user.id),
     canAccessPremiumContent(session.user.id),
     listCategories(),
+    countPublishedCoursesByCategory(),
   ]);
 
   const courses = await Promise.all(
@@ -75,6 +76,7 @@ export default async function MesFormationsPage() {
                   category={category}
                   hrefBase="/app/categories"
                   index={index}
+                  courseCount={courseCountByCategory[category.id] ?? 0}
                 />
               ))}
             </div>

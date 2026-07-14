@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CategoryCard } from "@/components/learning/category-card";
-import { listCategories, listCourses } from "@/server/repositories/catalog";
+import { listCategories, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
 import { hasInsForgePublicConfig } from "@/lib/insforge/server";
 import { Compass } from "lucide-react";
 
@@ -12,14 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default async function CategoriesPage() {
-  const categories = await listCategories();
-  const counts = await Promise.all(
-    categories.map(async (category) => {
-      const courses = await listCourses({ categorySlug: category.slug });
-      return [category.id, courses.length] as const;
-    }),
-  );
-  const countById = Object.fromEntries(counts);
+  const [categories, countById] = await Promise.all([
+    listCategories(),
+    countPublishedCoursesByCategory(),
+  ]);
 
   return (
     <>

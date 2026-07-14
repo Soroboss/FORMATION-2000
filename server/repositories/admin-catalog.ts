@@ -12,6 +12,7 @@ export type AdminCategory = {
   slug: string;
   description: string | null;
   icon: string | null;
+  imageUrl: string | null;
   sortOrder: number;
   isActive: boolean;
 };
@@ -22,6 +23,9 @@ export type AdminCourse = {
   slug: string;
   shortDescription: string | null;
   description: string | null;
+  learningOutcomes: string[];
+  finalProjectDescription: string | null;
+  thumbnailUrl: string | null;
   categoryId: string | null;
   level: string | null;
   accessType: string;
@@ -60,7 +64,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
   const client = await getAdminDbClient();
   const { data } = await client.database
     .from("categories")
-    .select("id, name, slug, description, icon, sort_order, is_active")
+    .select("id, name, slug, description, icon, image_url, sort_order, is_active")
     .order("sort_order", { ascending: true });
   if (!Array.isArray(data)) return [];
   return data.map((row) => ({
@@ -69,6 +73,7 @@ export async function listAdminCategories(): Promise<AdminCategory[]> {
     slug: String(row.slug),
     description: (row.description as string | null) ?? null,
     icon: (row.icon as string | null) ?? null,
+    imageUrl: (row.image_url as string | null) ?? null,
     sortOrder: Number(row.sort_order ?? 0),
     isActive: Boolean(row.is_active),
   }));
@@ -80,6 +85,7 @@ export async function upsertCategory(input: {
   slug?: string;
   description?: string;
   icon?: string;
+  imageUrl?: string;
   sortOrder: number;
   isActive: boolean;
 }): Promise<AdminCategory> {
@@ -89,6 +95,7 @@ export async function upsertCategory(input: {
     slug: input.slug?.trim() || slugify(input.name),
     description: input.description || null,
     icon: input.icon || null,
+    image_url: input.imageUrl || null,
     sort_order: input.sortOrder,
     is_active: input.isActive,
   };
@@ -98,7 +105,7 @@ export async function upsertCategory(input: {
     : client.database.from("categories").insert(payload);
 
   const { data, error } = await query
-    .select("id, name, slug, description, icon, sort_order, is_active")
+    .select("id, name, slug, description, icon, image_url, sort_order, is_active")
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "Catégorie impossible à enregistrer");
@@ -108,6 +115,7 @@ export async function upsertCategory(input: {
     slug: String(data.slug),
     description: (data.description as string | null) ?? null,
     icon: (data.icon as string | null) ?? null,
+    imageUrl: (data.image_url as string | null) ?? null,
     sortOrder: Number(data.sort_order ?? 0),
     isActive: Boolean(data.is_active),
   };
@@ -118,7 +126,7 @@ export async function listAdminCourses(): Promise<AdminCourse[]> {
   const { data } = await client.database
     .from("courses")
     .select(
-      "id, title, slug, short_description, description, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .order("updated_at", { ascending: false });
   if (!Array.isArray(data)) return [];
@@ -130,12 +138,17 @@ export async function getAdminCourse(id: string): Promise<AdminCourse | null> {
   const { data } = await client.database
     .from("courses")
     .select(
-      "id, title, slug, short_description, description, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
   return mapCourse(data as Record<string, unknown>);
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
 }
 
 function mapCourse(row: Record<string, unknown>): AdminCourse {
@@ -145,6 +158,9 @@ function mapCourse(row: Record<string, unknown>): AdminCourse {
     slug: String(row.slug),
     shortDescription: (row.short_description as string | null) ?? null,
     description: (row.description as string | null) ?? null,
+    learningOutcomes: asStringArray(row.learning_outcomes),
+    finalProjectDescription: (row.final_project_description as string | null) ?? null,
+    thumbnailUrl: (row.thumbnail_url as string | null) ?? null,
     categoryId: (row.category_id as string | null) ?? null,
     level: (row.level as string | null) ?? null,
     accessType: String(row.access_type ?? "subscription"),
@@ -162,6 +178,9 @@ export async function upsertCourse(input: {
   slug?: string;
   shortDescription?: string;
   description?: string;
+  learningOutcomes?: string[];
+  finalProjectDescription?: string;
+  thumbnailUrl?: string;
   categoryId?: string;
   level?: string;
   accessType: string;
@@ -177,6 +196,9 @@ export async function upsertCourse(input: {
     slug,
     short_description: input.shortDescription || null,
     description: input.description || null,
+    learning_outcomes: input.learningOutcomes ?? [],
+    final_project_description: input.finalProjectDescription || null,
+    thumbnail_url: input.thumbnailUrl || null,
     category_id: input.categoryId || null,
     level: input.level || null,
     access_type: input.accessType,
@@ -199,7 +221,7 @@ export async function upsertCourse(input: {
 
   const { data, error } = await query
     .select(
-      "id, title, slug, short_description, description, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
+      "id, title, slug, short_description, description, learning_outcomes, final_project_description, thumbnail_url, category_id, level, access_type, estimated_duration_minutes, is_featured, status, published_at, updated_at",
     )
     .single();
 
@@ -407,6 +429,8 @@ export async function upsertLesson(input: {
       .from("youtube_sources")
       .upsert(ytPayload, { onConflict: "lesson_id" });
     if (ytError) throw new Error(ytError.message);
+
+    await maybeSetCourseThumbnailFromModule(input.moduleId, ytPayload.thumbnail_url);
   }
 
   return {
@@ -424,6 +448,30 @@ export async function upsertLesson(input: {
     youtubeUrl,
     channelName,
   };
+}
+
+async function maybeSetCourseThumbnailFromModule(
+  moduleId: string,
+  thumbnailUrl: string,
+): Promise<void> {
+  const client = await getAdminDbClient();
+  const { data: mod } = await client.database
+    .from("modules")
+    .select("course_id")
+    .eq("id", moduleId)
+    .maybeSingle();
+  if (!mod) return;
+  const courseId = String((mod as { course_id: string }).course_id);
+  const { data: course } = await client.database
+    .from("courses")
+    .select("thumbnail_url")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (course && (course as { thumbnail_url: string | null }).thumbnail_url) return;
+  await client.database
+    .from("courses")
+    .update({ thumbnail_url: thumbnailUrl })
+    .eq("id", courseId);
 }
 
 /** Crée un module « Parcours principal » s’il n’en existe aucun. */

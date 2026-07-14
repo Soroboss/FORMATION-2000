@@ -10,7 +10,7 @@ export default async function AdminCategoriesPage() {
     <section className="space-y-6">
       <AdminPageHeader
         title="Catégories"
-        description="Organisation du catalogue visible côté apprenant."
+        description="Organisation du catalogue visible côté apprenant. Ajoutez une image de couverture (URL)."
       />
 
       <form
@@ -40,6 +40,12 @@ export default async function AdminCategoriesPage() {
           defaultValue={categories.length + 1}
           className="rounded-soft border border-canvas-border px-3 py-2 text-sm text-ink"
         />
+        <input
+          name="imageUrl"
+          type="url"
+          placeholder="URL image de couverture"
+          className="rounded-soft border border-canvas-border px-3 py-2 text-sm text-ink sm:col-span-2"
+        />
         <textarea
           name="description"
           placeholder="Description"
@@ -63,17 +69,72 @@ export default async function AdminCategoriesPage() {
           description="Ajoutez une catégorie pour classer les formations."
         />
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-4">
           {categories.map((cat) => (
-            <li key={cat.id} className="ui-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-              <div>
-                <p className="font-semibold text-ink">{cat.name}</p>
-                <p className="text-xs text-ink-muted">{cat.slug}</p>
-              </div>
-              <StatusBadge
-                value={cat.isActive ? "active" : "suspended"}
-                label={cat.isActive ? "Active" : "Inactive"}
-              />
+            <li key={cat.id} className="ui-card p-4 sm:p-5">
+              <form action={saveCategoryAction} className="grid gap-3 sm:grid-cols-2">
+                <input type="hidden" name="id" value={cat.id} />
+                <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-ink">{cat.name}</p>
+                  <StatusBadge
+                    value={cat.isActive ? "active" : "suspended"}
+                    label={cat.isActive ? "Active" : "Inactive"}
+                  />
+                </div>
+                {cat.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={cat.imageUrl}
+                    alt=""
+                    className="h-24 w-full rounded-soft object-cover sm:col-span-2"
+                  />
+                ) : null}
+                <input
+                  name="name"
+                  defaultValue={cat.name}
+                  required
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
+                />
+                <input
+                  name="slug"
+                  defaultValue={cat.slug}
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
+                />
+                <input
+                  name="icon"
+                  defaultValue={cat.icon ?? ""}
+                  placeholder="Icône"
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
+                />
+                <input
+                  name="sortOrder"
+                  type="number"
+                  defaultValue={cat.sortOrder}
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
+                />
+                <input
+                  name="imageUrl"
+                  type="url"
+                  defaultValue={cat.imageUrl ?? ""}
+                  placeholder="URL couverture"
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm sm:col-span-2"
+                />
+                <textarea
+                  name="description"
+                  defaultValue={cat.description ?? ""}
+                  rows={2}
+                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm sm:col-span-2"
+                />
+                <label className="flex items-center gap-2 text-sm text-ink">
+                  <input type="checkbox" name="isActive" defaultChecked={cat.isActive} />
+                  Active
+                </label>
+                <div className="flex justify-end">
+                  <Button type="submit" size="sm">
+                    Enregistrer
+                  </Button>
+                </div>
+              </form>
             </li>
           ))}
         </ul>

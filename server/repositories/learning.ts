@@ -98,6 +98,85 @@ export async function listEnrollmentsForUser(userId: string): Promise<Enrollment
   return data.map((row) => mapEnrollment(row as Record<string, unknown>));
 }
 
+export async function getEnrollmentForCourse(
+  userId: string,
+  courseId: string,
+): Promise<Enrollment | null> {
+  const client = await clientForUser();
+  const { data } = await client.database
+    .from("enrollments")
+    .select("id, user_id, course_id, status, progress_percent, last_lesson_id, started_at, completed_at")
+    .eq("user_id", userId)
+    .eq("course_id", courseId)
+    .maybeSingle();
+  if (!data) return null;
+  return mapEnrollment(data as Record<string, unknown>);
+}
+
+export async function listAssignmentsForCourse(courseId: string): Promise<
+  Array<AssignmentSummary & { courseId: string | null }>
+> {
+  const token = await getAccessToken();
+  const client = tryCreateInsForgeServerClient(token);
+  if (!client) return [];
+
+  const { data: byCourse } = await client.database
+    .from("assignments")
+    .select("id, lesson_id, course_id, title, instructions, expected_deliverables")
+    .eq("course_id", courseId)
+    .order("created_at", { ascending: true });
+
+  const rows = Array.isArray(byCourse) ? [...byCourse] : [];
+
+  // Fallback: assignments linked only via lesson of this course
+  const { data: modules } = await client.database
+    .from("modules")
+    .select("id")
+    .eq("course_id", courseId);
+  const moduleIds = Array.isArray(modules)
+    ? modules.map((m) => String((m as { id: string }).id))
+    : [];
+  if (moduleIds.length > 0) {
+    const { data: lessons } = await client.database
+      .from("lessons")
+      .select("id")
+      .in("module_id", moduleIds);
+    const lessonIds = Array.isArray(lessons)
+      ? lessons.map((l) => String((l as { id: string }).id))
+      : [];
+    if (lessonIds.length > 0) {
+      const { data: byLesson } = await client.database
+        .from("assignments")
+        .select("id, lesson_id, course_id, title, instructions, expected_deliverables")
+        .in("lesson_id", lessonIds);
+      if (Array.isArray(byLesson)) {
+        const seen = new Set(rows.map((r) => String((r as { id: string }).id)));
+        for (const row of byLesson) {
+          const id = String((row as { id: string }).id);
+          if (!seen.has(id)) {
+            seen.add(id);
+            rows.push(row);
+          }
+        }
+      }
+    }
+  }
+
+  return rows.map((row) => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: String(r.id),
+      lessonId: (r.lesson_id as string | null) ?? null,
+      courseId: (r.course_id as string | null) ?? null,
+      title: String(r.title),
+      instructions: String(r.instructions ?? ""),
+      expectedDeliverables: Array.isArray(r.expected_deliverables)
+        ? (r.expected_deliverables as string[])
+        : [],
+    };
+  });
+}
+
 export async function getLessonProgress(
   userId: string,
   lessonId: string,

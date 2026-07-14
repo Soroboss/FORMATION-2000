@@ -13,7 +13,7 @@ import {
 import { CategoryCard } from "@/components/learning/category-card";
 import { CourseCard } from "@/components/learning/course-card";
 import { BrandLogo } from "@/components/brand/logo";
-import { listCategories, listCourses } from "@/server/repositories/catalog";
+import { listCategories, listCourses, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
 
 const benefits = [
   {
@@ -66,9 +66,10 @@ const included = [
 ];
 
 export default async function HomePage() {
-  const [categories, featured] = await Promise.all([
+  const [categories, featured, courseCountByCategory] = await Promise.all([
     listCategories(),
     listCourses({ featured: true }),
+    countPublishedCoursesByCategory(),
   ]);
 
   return (
@@ -249,8 +250,13 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {categories.slice(0, 3).map((category) => (
-                <CategoryCard key={category.id} category={category} />
+              {categories.slice(0, 3).map((category, index) => (
+                <CategoryCard
+                  key={category.id}
+                  category={category}
+                  index={index}
+                  courseCount={courseCountByCategory[category.id] ?? 0}
+                />
               ))}
             </div>
           </div>

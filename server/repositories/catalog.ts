@@ -140,6 +140,24 @@ export async function listCategories(): Promise<Category[]> {
   return data.map((row) => mapCategory(row as Record<string, unknown>));
 }
 
+/** Nombre de formations publiées par category_id. */
+export async function countPublishedCoursesByCategory(): Promise<Record<string, number>> {
+  const client = await getCatalogClient();
+  if (!client) return {};
+  const { data } = await client.database
+    .from("courses")
+    .select("category_id")
+    .eq("status", "published");
+  if (!Array.isArray(data)) return {};
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    const id = (row as { category_id: string | null }).category_id;
+    if (!id) continue;
+    counts[String(id)] = (counts[String(id)] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
   const client = await getCatalogClient();
   if (!client) return null;

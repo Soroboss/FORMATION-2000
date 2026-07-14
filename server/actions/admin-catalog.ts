@@ -45,6 +45,7 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
       slug: formString(formData, "slug") || undefined,
       description: formString(formData, "description"),
       icon: formString(formData, "icon"),
+      imageUrl: formString(formData, "imageUrl"),
       sortOrder: formString(formData, "sortOrder") || 0,
       isActive: formBool(formData, "isActive"),
     });
@@ -52,7 +53,16 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
     }
     const id = formString(formData, "id") || undefined;
-    const category = await upsertCategory({ id, ...parsed.data });
+    const category = await upsertCategory({
+      id,
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      description: parsed.data.description,
+      icon: parsed.data.icon,
+      imageUrl: parsed.data.imageUrl,
+      sortOrder: parsed.data.sortOrder,
+      isActive: parsed.data.isActive,
+    });
     await writeAuditLog({
       actorUserId: session.user.id,
       action: id ? "category.update" : "category.create",
@@ -62,6 +72,8 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
     });
     revalidatePath("/admin/categories");
     revalidatePath("/formations");
+    revalidatePath("/categories");
+    revalidatePath("/app/catalogue");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
@@ -76,6 +88,9 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       slug: formString(formData, "slug") || undefined,
       shortDescription: formString(formData, "shortDescription"),
       description: formString(formData, "description"),
+      learningOutcomes: formString(formData, "learningOutcomes"),
+      finalProjectDescription: formString(formData, "finalProjectDescription"),
+      thumbnailUrl: formString(formData, "thumbnailUrl"),
       categoryId: formString(formData, "categoryId") || undefined,
       level: formString(formData, "level") || undefined,
       accessType: formString(formData, "accessType") || "subscription",
@@ -87,12 +102,19 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
     }
     const id = formString(formData, "id") || undefined;
+    const learningOutcomes = (parsed.data.learningOutcomes ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
     const course = await upsertCourse({
       id,
       title: parsed.data.title,
       slug: parsed.data.slug,
       shortDescription: parsed.data.shortDescription,
       description: parsed.data.description,
+      learningOutcomes,
+      finalProjectDescription: parsed.data.finalProjectDescription,
+      thumbnailUrl: parsed.data.thumbnailUrl,
       categoryId: parsed.data.categoryId || undefined,
       level: parsed.data.level || undefined,
       accessType: parsed.data.accessType,
@@ -111,6 +133,9 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
     revalidatePath("/admin/formations");
     revalidatePath(`/admin/formations/${course.id}`);
     revalidatePath("/formations");
+    revalidatePath(`/formations/${course.slug}`);
+    revalidatePath(`/app/formations/${course.slug}`);
+    revalidatePath("/app/catalogue");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));

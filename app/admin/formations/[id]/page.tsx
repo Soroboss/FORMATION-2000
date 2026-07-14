@@ -228,6 +228,45 @@ export default async function AdminFormationDetailPage({
           <span className="font-medium">Description</span>
           <textarea name="description" defaultValue={course.description ?? ""} rows={4} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
         </label>
+        <label className="block text-sm">
+          <span className="font-medium">Ce qu’ils vont apprendre</span>
+          <textarea
+            name="learningOutcomes"
+            defaultValue={course.learningOutcomes.join("\n")}
+            rows={5}
+            placeholder={"Une compétence par ligne\nEx. Créer une page HTML\nPublier un site"}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+          <span className="mt-1 block text-xs text-ink-muted">Une ligne = un objectif.</span>
+        </label>
+        <label className="block text-sm">
+          <span className="font-medium">Exercices / projet à faire</span>
+          <textarea
+            name="finalProjectDescription"
+            defaultValue={course.finalProjectDescription ?? ""}
+            rows={4}
+            placeholder="Décrivez le ou les exercices pratiques à réaliser pendant la formation…"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="font-medium">Image de couverture (URL)</span>
+          <input
+            name="thumbnailUrl"
+            type="url"
+            defaultValue={course.thumbnailUrl ?? ""}
+            placeholder="https://… (sinon prise auto depuis YouTube)"
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+          {course.thumbnailUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={course.thumbnailUrl}
+              alt=""
+              className="mt-2 h-28 w-full max-w-sm rounded-soft object-cover"
+            />
+          ) : null}
+        </label>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">
             <span className="font-medium">Catégorie</span>
@@ -241,6 +280,15 @@ export default async function AdminFormationDetailPage({
             </select>
           </label>
           <label className="block text-sm">
+            <span className="font-medium">Niveau</span>
+            <select name="level" defaultValue={course.level ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+              <option value="">—</option>
+              <option value="beginner">Débutant</option>
+              <option value="intermediate">Intermédiaire</option>
+              <option value="advanced">Avancé</option>
+            </select>
+          </label>
+          <label className="block text-sm">
             <span className="font-medium">Accès</span>
             <select name="accessType" defaultValue={course.accessType} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
               <option value="free">Gratuit</option>
@@ -248,6 +296,8 @@ export default async function AdminFormationDetailPage({
               <option value="purchase">Achat</option>
             </select>
           </label>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm">
             <span className="font-medium">Statut</span>
             <select name="status" defaultValue={course.status} className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
@@ -257,16 +307,16 @@ export default async function AdminFormationDetailPage({
               <option value="archived">Archivé</option>
             </select>
           </label>
+          <label className="block text-sm">
+            <span className="font-medium">Durée estimée (min)</span>
+            <input
+              name="estimatedDurationMinutes"
+              type="number"
+              defaultValue={course.estimatedDurationMinutes}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            />
+          </label>
         </div>
-        <label className="block text-sm">
-          <span className="font-medium">Durée estimée (min)</span>
-          <input
-            name="estimatedDurationMinutes"
-            type="number"
-            defaultValue={course.estimatedDurationMinutes}
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          />
-        </label>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="isFeatured" defaultChecked={course.isFeatured} />
           Mise en avant

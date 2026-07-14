@@ -4,7 +4,7 @@ import { CategoryCard } from "@/components/learning/category-card";
 import { CourseCard } from "@/components/learning/course-card";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { listCategories, listCourses } from "@/server/repositories/catalog";
+import { listCategories, listCourses, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
 import type { CourseLevel } from "@/types/catalog";
 
 export default async function AppCataloguePage({
@@ -23,12 +23,13 @@ export default async function AppCataloguePage({
       ? (params.level as CourseLevel)
       : undefined;
 
-  const [categories, courses] = await Promise.all([
+  const [categories, courses, courseCountByCategory] = await Promise.all([
     listCategories(),
     listCourses({
       q: params.q?.trim() || undefined,
       level,
     }),
+    countPublishedCoursesByCategory(),
   ]);
 
   return (
@@ -71,6 +72,7 @@ export default async function AppCataloguePage({
                 category={category}
                 hrefBase="/app/categories"
                 index={index}
+                courseCount={courseCountByCategory[category.id] ?? 0}
               />
             ))}
           </div>

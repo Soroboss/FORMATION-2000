@@ -11,7 +11,7 @@ import {
 import { CategoryCard } from "@/components/learning/category-card";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { getLessonAppPath, listCategories } from "@/server/repositories/catalog";
+import { getLessonAppPath, listCategories, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
 import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
 
@@ -27,12 +27,14 @@ export default async function TableauDeBordPage() {
     session.user.email ??
     "apprenant";
 
-  const [hasPremium, subscription, enrollments, categories] = await Promise.all([
-    canAccessPremiumContent(session.user.id),
-    getLatestSubscriptionForUser(session.user.id),
-    listEnrollmentsForUser(session.user.id),
-    listCategories(),
-  ]);
+  const [hasPremium, subscription, enrollments, categories, courseCountByCategory] =
+    await Promise.all([
+      canAccessPremiumContent(session.user.id),
+      getLatestSubscriptionForUser(session.user.id),
+      listEnrollmentsForUser(session.user.id),
+      listCategories(),
+      countPublishedCoursesByCategory(),
+    ]);
 
   const hasCourses = enrollments.length > 0;
   const resumeEnrollment = enrollments.find((e) => e.lastLessonId);
@@ -198,6 +200,7 @@ export default async function TableauDeBordPage() {
                   category={category}
                   hrefBase="/app/categories"
                   index={index}
+                  courseCount={courseCountByCategory[category.id] ?? 0}
                 />
               ))}
             </div>

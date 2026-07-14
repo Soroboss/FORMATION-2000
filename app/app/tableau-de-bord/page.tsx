@@ -6,10 +6,12 @@ import {
   CreditCard,
   Lock,
   PlayCircle,
+  Shield,
   TrendingUp,
 } from "lucide-react";
 import { CategoryCard } from "@/components/learning/category-card";
 import { getSession } from "@/lib/auth/session";
+import { canAccessAdmin } from "@/lib/permissions/roles";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import { listCategories } from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
@@ -35,6 +37,7 @@ export default async function TableauDeBordPage() {
   ]);
 
   const hasCourses = enrollments.length > 0;
+  const isAdmin = canAccessAdmin(session.roles);
 
   return (
     <section className="space-y-6">
@@ -120,6 +123,15 @@ export default async function TableauDeBordPage() {
             >
               <BookOpen className="h-4 w-4" strokeWidth={2} aria-hidden />
               Mes formations
+            </Link>
+          ) : null}
+          {isAdmin ? (
+            <Link
+              href="/admin/tableau-de-bord"
+              className="inline-flex h-11 items-center gap-2 rounded-brand bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-800"
+            >
+              <Shield className="h-4 w-4" strokeWidth={2} aria-hidden />
+              Administration
             </Link>
           ) : null}
         </div>

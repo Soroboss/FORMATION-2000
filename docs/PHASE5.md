@@ -17,7 +17,13 @@
 
 Les pages `/admin` exigent les rôles `support`, `admin` ou `super_admin`.
 
-Après inscription, attribuer un rôle (service SQL) :
+Compte propriétaire actuel : `bigreussite@gmail.com` a le rôle **`super_admin`**.
+
+Entrée UI :
+- Bouton **Administration** dans l’espace apprenant (header + dashboard) si rôle admin
+- URL directe : `/admin` → `/admin/tableau-de-bord`
+
+Après inscription d’un nouvel admin, attribuer un rôle (service SQL) :
 
 ```sql
 INSERT INTO user_roles (user_id, role_id)
@@ -33,6 +39,7 @@ ON CONFLICT (user_id, role_id) DO NOTHING;
 npx @insforge/cli db query "…sql ci-dessus…"
 ```
 
+Puis rafraîchir la session (recharger la page ou se reconnecter).
 ## Migration
 
 ```bash

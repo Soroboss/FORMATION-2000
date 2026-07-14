@@ -1,0 +1,9 @@
+User-Agent: *
+Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /api
+Disallow: /connexion
+Disallow: /inscription
+Disallow: /mot-de-passe-oublie
+Disallow: /reinitialiser-mot-de-passe

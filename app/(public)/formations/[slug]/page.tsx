@@ -77,7 +77,7 @@ export default async function FormationPublicPage({ params }: Props) {
           <div className="mt-5 flex flex-col gap-2">
             <Link
               href="/inscription"
-              className="inline-flex h-11 items-center justify-center rounded-lg bg-action-600 px-4 text-sm font-semibold text-white hover:bg-action-700"
+              className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
             >
               S&apos;abonner
             </Link>
@@ -91,8 +91,8 @@ export default async function FormationPublicPage({ params }: Props) {
             ) : null}
           </div>
           <p className="mt-4 text-xs text-slate-500">
-            Les vidéos premium ne sont pas accessibles sans abonnement actif. Les créateurs
-            YouTube restent crédités sur chaque leçon.
+            Les leçons premium restent verrouillées sans abonnement actif. Les créateurs de
+            contenu sont crédités sur chaque leçon.
           </p>
         </aside>
       </div>

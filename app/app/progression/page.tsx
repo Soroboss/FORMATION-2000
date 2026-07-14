@@ -45,10 +45,16 @@ export default async function ProgressionPage() {
                 className="rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="font-medium text-slate-900">
+                  <span className="font-medium text-ink">
                     {course?.title ?? enrollment.courseId}
                   </span>
-                  <span>{enrollment.progressPercent}%</span>
+                  <span className="font-semibold text-progress-600">{enrollment.progressPercent}%</span>
+                </div>
+                <div className="progress-bar mt-3">
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${Math.min(100, Math.max(0, enrollment.progressPercent))}%` }}
+                  />
                 </div>
                 {course ? (
                   <Link

@@ -1,4 +1,4 @@
-# Go-live — Académie 2000
+# Go-live — Learnoon Academy
 
 Checklist avant bascule production.
 
@@ -14,7 +14,8 @@ Checklist avant bascule production.
 
 ```bash
 NEXT_PUBLIC_APP_URL=https://votre-domaine.ci
-NEXT_PUBLIC_APP_NAME=Académie 2000
+NEXT_PUBLIC_APP_NAME=Learnoon Academy
+NEXT_PUBLIC_APP_SHORT_NAME=Learnoon
 NEXT_PUBLIC_INSFORGE_URL=https://….insforge.app
 NEXT_PUBLIC_INSFORGE_ANON_KEY=anon_…
 INSFORGE_SERVICE_KEY=ik_…

@@ -15,7 +15,7 @@ export default async function AdminFormationsPage() {
         </div>
         <Link
           href="/admin/formations/nouvelle"
-          className="inline-flex h-10 items-center rounded-lg bg-action-600 px-4 text-sm font-semibold text-white hover:bg-action-700"
+          className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Nouvelle formation
         </Link>

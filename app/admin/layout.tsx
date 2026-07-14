@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="border-b border-slate-200 bg-slate-950 text-white">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link href="/admin/tableau-de-bord" className="text-sm font-semibold tracking-wide">
-            {appName} · Admin
+            {appName} Administration
           </Link>
           <form action={logoutAction}>
             <Button type="submit" variant="ghost" size="sm" className="text-white hover:bg-white/10">

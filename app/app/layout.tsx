@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { logoutAction } from "@/server/actions/auth";
-import { getAppName } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
@@ -30,7 +30,6 @@ export default async function LearnerAppLayout({ children }: { children: React.R
     redirect("/connexion?next=/app/tableau-de-bord");
   }
 
-  const appName = getAppName();
   const display =
     session.profile?.displayName ??
     session.profile?.firstName ??
@@ -40,9 +39,7 @@ export default async function LearnerAppLayout({ children }: { children: React.R
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/app/tableau-de-bord" className="font-display text-lg font-semibold text-brand-900">
-            {appName}
-          </Link>
+          <BrandLogo href="/app/tableau-de-bord" />
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-slate-600 sm:inline">{display}</span>
             <form action={logoutAction}>
@@ -60,7 +57,7 @@ export default async function LearnerAppLayout({ children }: { children: React.R
               <Link
                 key={item.href}
                 href={item.href}
-                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-brand-50 hover:text-brand-900"
+                className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-brand-50 hover:text-brand-700"
               >
                 {item.label}
               </Link>

@@ -7,7 +7,7 @@ import { hasInsForgePublicConfig } from "@/lib/insforge/server";
 
 export const metadata: Metadata = {
   title: "Formations",
-  description: "Catalogue public des formations Académie 2000.",
+  description: "Catalogue public des formations Learnoon Academy.",
 };
 
 export default async function FormationsPage({

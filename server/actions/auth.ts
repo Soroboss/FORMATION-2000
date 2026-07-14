@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createInsForgeServerClient } from "@/lib/insforge/server";
+import { createInsForgeServerClient, tryCreateInsForgeServiceClient } from "@/lib/insforge/server";
 import { clearAuthCookies, setAuthCookies } from "@/lib/auth/cookies";
 import {
   forgotPasswordSchema,
@@ -25,6 +25,7 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
     firstName: formString(formData, "firstName"),
     lastName: formString(formData, "lastName"),
     email: formString(formData, "email").toLowerCase(),
+    whatsapp: formString(formData, "whatsapp"),
     password: String(formData.get("password") ?? ""),
     acceptTerms: formData.get("acceptTerms") === "on" || formData.get("acceptTerms") === "true",
   });
@@ -36,7 +37,7 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
     };
   }
 
-  const { firstName, lastName, email, password } = parsed.data;
+  const { firstName, lastName, email, password, whatsapp } = parsed.data;
   const displayName = `${firstName} ${lastName}`.trim();
 
   try {
@@ -52,26 +53,30 @@ export async function registerAction(formData: FormData): Promise<AuthActionResu
       return { success: false, error: error.message ?? "Inscription impossible." };
     }
 
-    if (data?.requireEmailVerification) {
-      return { success: true, requireEmailVerification: true };
-    }
-
-    if (data?.accessToken && data?.refreshToken) {
-      await setAuthCookies(data.accessToken, data.refreshToken);
-
-      // Best-effort profile enrichment (trigger also creates the base row).
-      if (data.user?.id) {
-        const authed = createInsForgeServerClient(data.accessToken);
-        await authed.database
+    const userId = data?.user?.id;
+    if (userId) {
+      const privileged = tryCreateInsForgeServiceClient();
+      const profileClient = privileged ?? (data.accessToken ? createInsForgeServerClient(data.accessToken) : null);
+      if (profileClient) {
+        await profileClient.database
           .from("profiles")
           .update({
             first_name: firstName,
             last_name: lastName,
             display_name: displayName,
             email,
+            phone: whatsapp,
           })
-          .eq("id", data.user.id);
+          .eq("id", userId);
       }
+    }
+
+    if (data?.requireEmailVerification) {
+      return { success: true, requireEmailVerification: true };
+    }
+
+    if (data?.accessToken && data?.refreshToken) {
+      await setAuthCookies(data.accessToken, data.refreshToken);
     }
 
     redirect("/app/tableau-de-bord");

@@ -11,7 +11,7 @@ export async function GET() {
 
   const payload = {
     ok,
-    service: "academie-2000",
+    service: "learnoon-academy",
     phase: 7,
     timestamp: new Date().toISOString(),
     checks: {

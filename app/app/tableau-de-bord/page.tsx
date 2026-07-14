@@ -20,9 +20,10 @@ export default async function TableauDeBordPage() {
     <section className="space-y-6">
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="font-display text-2xl font-semibold text-slate-900">
-          Bonjour, {name}
+          Bienvenue sur Learnoon Academy
         </h1>
         <p className="mt-2 text-sm text-slate-600">
+          Bonjour, {name}.{" "}
           {hasPremium
             ? "Votre abonnement est actif. Continuez une formation ou explorez le catalogue."
             : "Activez l'accès mensuel pour débloquer les leçons premium."}
@@ -58,7 +59,7 @@ export default async function TableauDeBordPage() {
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
             href={hasPremium ? "/app/catalogue" : "/app/abonnement"}
-            className="inline-flex h-11 items-center rounded-lg bg-action-600 px-5 text-sm font-semibold text-white hover:bg-action-700"
+            className="inline-flex h-11 items-center rounded-lg bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             {hasPremium ? "Continuer" : "S'abonner — 2 000 FCFA"}
           </Link>

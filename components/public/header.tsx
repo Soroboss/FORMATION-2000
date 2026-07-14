@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAppName } from "@/lib/utils";
+import { BrandLogo } from "@/components/brand/logo";
 import { getSession } from "@/lib/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,11 @@ import { MobileNav } from "@/components/public/mobile-nav";
 
 export async function PublicHeader() {
   const session = await getSession();
-  const appName = getAppName();
 
   return (
     <header className="relative border-b border-white/40 bg-white/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          className="font-display text-xl font-semibold tracking-tight text-brand-900"
-        >
-          {appName}
-        </Link>
+        <BrandLogo />
         <nav aria-label="Navigation principale" className="hidden items-center gap-2 sm:flex sm:gap-3">
           <Link
             href="/formations"
@@ -61,7 +55,7 @@ export async function PublicHeader() {
               </Link>
               <Link
                 href="/inscription"
-                className="inline-flex h-10 min-h-10 items-center rounded-lg bg-action-600 px-3 text-sm font-semibold text-white hover:bg-action-700"
+                className="inline-flex h-10 min-h-10 items-center rounded-lg bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700"
               >
                 Commencer
               </Link>

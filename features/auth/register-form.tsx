@@ -58,6 +58,22 @@ export function RegisterForm() {
       </div>
 
       <div>
+        <Label htmlFor="whatsapp">Numéro WhatsApp</Label>
+        <Input
+          id="whatsapp"
+          name="whatsapp"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
+          required
+          placeholder="Ex. +225 07 XX XX XX XX"
+        />
+        <p className="mt-1 text-xs text-ink-muted">
+          Utilisé pour le suivi d&apos;inscription et la confirmation des paiements Mobile Money.
+        </p>
+      </div>
+
+      <div>
         <Label htmlFor="password">Mot de passe</Label>
         <Input
           id="password"
@@ -67,25 +83,42 @@ export function RegisterForm() {
           required
           minLength={8}
         />
-        <p className="mt-1 text-xs text-slate-500">Minimum 8 caractères.</p>
+        <p className="mt-1 text-xs text-ink-muted">Minimum 8 caractères.</p>
       </div>
 
-      <label className="flex items-start gap-2 text-sm text-slate-700">
-        <input
-          type="checkbox"
-          name="acceptTerms"
-          value="true"
-          required
-          className="mt-1 h-4 w-4 rounded border-slate-300"
-        />
-        <span>
-          J&apos;accepte les{" "}
-          <Link href="/conditions-utilisation" className="font-medium text-brand-700 underline">
-            conditions d&apos;utilisation
-          </Link>
-          .
-        </span>
-      </label>
+      <fieldset className="rounded-soft border border-canvas-border bg-canvas px-3 py-3">
+        <legend className="px-1 font-display text-sm font-semibold text-ink">
+          Conditions d&apos;utilisation
+        </legend>
+        <label className="mt-1 flex items-start gap-2 text-sm text-ink">
+          <input
+            type="checkbox"
+            name="acceptTerms"
+            value="true"
+            required
+            className="mt-1 h-4 w-4 rounded border-canvas-border text-brand-600 focus:ring-brand-600"
+          />
+          <span>
+            J&apos;ai lu et j&apos;accepte les{" "}
+            <Link
+              href="/conditions-utilisation"
+              target="_blank"
+              className="font-semibold text-brand-600 underline"
+            >
+              Conditions d&apos;utilisation
+            </Link>{" "}
+            et la{" "}
+            <Link
+              href="/politique-confidentialite"
+              target="_blank"
+              className="font-semibold text-brand-600 underline"
+            >
+              Politique de confidentialité
+            </Link>{" "}
+            de Learnoon Academy. Je confirme que les informations fournies sont exactes.
+          </span>
+        </label>
+      </fieldset>
 
       {result && !result.success ? <Alert variant="error">{result.error}</Alert> : null}
 
@@ -93,9 +126,9 @@ export function RegisterForm() {
         {pending ? "Création…" : "Créer mon compte"}
       </Button>
 
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-ink-muted">
         Déjà inscrit ?{" "}
-        <Link href="/connexion" className="font-semibold text-brand-700 hover:underline">
+        <Link href="/connexion" className="font-semibold text-brand-600 hover:underline">
           Se connecter
         </Link>
       </p>

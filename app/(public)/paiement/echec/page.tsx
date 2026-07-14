@@ -26,7 +26,7 @@ export default async function PaiementEchecPage({
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/paiement"
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-action-600 px-4 text-sm font-semibold text-white hover:bg-action-700"
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Réessayer en ligne
           </Link>

@@ -67,7 +67,7 @@ export function MobileNav({
                 </Link>
                 <Link
                   href="/inscription"
-                  className="rounded-lg bg-action-600 px-3 py-3 text-center text-sm font-semibold text-white"
+                  className="rounded-lg bg-brand-600 px-3 py-3 text-center text-sm font-semibold text-white"
                   onClick={() => setOpen(false)}
                 >
                   Commencer

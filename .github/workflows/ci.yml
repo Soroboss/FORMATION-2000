@@ -41,7 +41,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_APP_URL: http://localhost:3000
-          NEXT_PUBLIC_APP_NAME: Académie 2000
+          NEXT_PUBLIC_APP_NAME: Learnoon Academy
           NEXT_PUBLIC_INSFORGE_URL: https://example.insforge.app
           NEXT_PUBLIC_INSFORGE_ANON_KEY: public-anon-key-for-ci
           PAYMENT_PROVIDER: sandbox

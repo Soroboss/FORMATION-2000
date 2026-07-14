@@ -16,7 +16,7 @@ const DEFAULT_CONFIG: ManualPaymentConfig = {
   enabled: true,
   whatsapp: "",
   whatsappMessage:
-    "Bonjour, j'ai payé mon abonnement Académie 2000 (2 000 FCFA). Voici la capture d'écran.",
+    "Bonjour, j'ai payé mon abonnement Learnoon Academy (2 000 FCFA). Voici la capture d'écran.",
   contacts: [],
   instructions:
     "1) Payez 2 000 FCFA via Mobile Money aux numéros ci-dessous.\n2) Envoyez la capture sur WhatsApp.\n3) Remplissez le formulaire.\n4) Après vérification, votre accès est activé.",
@@ -28,21 +28,21 @@ function parseContactsFromEnv(): ManualPaymentContact[] {
     contacts.push({
       label: "Orange Money",
       number: process.env.MANUAL_PAYMENT_ORANGE,
-      name: process.env.MANUAL_PAYMENT_ORANGE_NAME ?? "Académie 2000",
+      name: process.env.MANUAL_PAYMENT_ORANGE_NAME ?? "Learnoon Academy",
     });
   }
   if (process.env.MANUAL_PAYMENT_MTN) {
     contacts.push({
       label: "MTN MoMo",
       number: process.env.MANUAL_PAYMENT_MTN,
-      name: process.env.MANUAL_PAYMENT_MTN_NAME ?? "Académie 2000",
+      name: process.env.MANUAL_PAYMENT_MTN_NAME ?? "Learnoon Academy",
     });
   }
   if (process.env.MANUAL_PAYMENT_WAVE) {
     contacts.push({
       label: "Wave",
       number: process.env.MANUAL_PAYMENT_WAVE,
-      name: process.env.MANUAL_PAYMENT_WAVE_NAME ?? "Académie 2000",
+      name: process.env.MANUAL_PAYMENT_WAVE_NAME ?? "Learnoon Academy",
     });
   }
   return contacts;

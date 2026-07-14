@@ -41,7 +41,7 @@ export default async function AppFormationPage({
         {firstOpen ? (
           <Link
             href={`/app/formations/${course.slug}/lecons/${firstOpen.id}`}
-            className="mt-5 inline-flex h-11 items-center rounded-lg bg-action-600 px-5 text-sm font-semibold text-white hover:bg-action-700"
+            className="mt-5 inline-flex h-11 items-center rounded-lg bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
           >
             {firstOpen.isPreview ? "Commencer l'aperçu" : "Commencer"}
           </Link>

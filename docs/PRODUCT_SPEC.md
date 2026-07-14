@@ -1,6 +1,6 @@
 # CAHIER DES CHARGES TECHNIQUE — PLATEFORME DE FORMATION PAR ABONNEMENT
 
-> **Nom de travail :** Académie 2000  
+> **Nom de travail :** Learnoon Academy  
 > **Version :** 1.0  
 > **Statut :** Spécification fonctionnelle et technique prête pour développement  
 > **Stack cible :** Next.js + TypeScript + Tailwind CSS + InsForge + GitHub + Vercel  

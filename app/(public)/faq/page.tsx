@@ -12,9 +12,24 @@ export default function Page() {
           <dd className="mt-1">2 000 FCFA pour 30 jours.</dd>
         </div>
         <div>
-          <dt className="font-semibold">Possédez-vous les vidéos YouTube ?</dt>
+          <dt className="font-semibold">Possédez-vous les vidéos des formations ?</dt>
           <dd className="mt-1">
-            Non. Nous vendons la curation, la structure pédagogique et le suivi.
+            Non. Nous proposons la curation, la structure pédagogique, les exercices et le suivi —
+            la valeur est dans le parcours organisé, pas dans la propriété des contenus vidéo.
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold">Que se passe-t-il après le paiement ?</dt>
+          <dd className="mt-1">
+            Votre accès premium est activé pour 30 jours. Vous pouvez alors suivre toutes les
+            formations incluses dans le catalogue.
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold">Le paiement Mobile Money est-il possible ?</dt>
+          <dd className="mt-1">
+            Oui. Si le paiement en ligne ne passe pas, utilisez Mobile Money puis envoyez la
+            capture via WhatsApp pour confirmation manuelle.
           </dd>
         </div>
       </dl>

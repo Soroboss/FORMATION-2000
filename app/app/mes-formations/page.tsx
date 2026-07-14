@@ -25,40 +25,40 @@ export default async function MesFormationsPage() {
       </div>
 
       {courses.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
+        <p className="rounded-card border border-dashed border-canvas-border bg-canvas-card p-6 text-sm text-ink-muted">
           Aucune formation commencée.{" "}
-          <Link href="/app/catalogue" className="font-semibold text-brand-700 underline">
+          <Link href="/app/catalogue" className="font-semibold text-brand-600 underline">
             Explorer le catalogue
           </Link>
         </p>
       ) : (
         <ul className="space-y-3">
           {courses.map(({ enrollment, course }) => (
-            <li
-              key={enrollment.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
-            >
+            <li key={enrollment.id} className="ui-card p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold text-slate-900">
+                  <h2 className="font-display font-semibold text-ink">
                     {course?.title ?? "Formation"}
                   </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    {enrollment.progressPercent}% · {enrollment.status}
+                  <p className="mt-1 text-xs text-ink-muted">
+                    <span className="font-semibold text-progress-600">
+                      {enrollment.progressPercent}%
+                    </span>{" "}
+                    · {enrollment.status}
                   </p>
                 </div>
                 {course ? (
                   <Link
                     href={`/app/formations/${course.slug}`}
-                    className="text-sm font-semibold text-brand-700 hover:underline"
+                    className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
                   >
                     Continuer
                   </Link>
                 ) : null}
               </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div className="progress-bar mt-3">
                 <div
-                  className="h-full rounded-full bg-progress-600"
+                  className="progress-bar-fill"
                   style={{ width: `${enrollment.progressPercent}%` }}
                 />
               </div>

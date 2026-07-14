@@ -48,10 +48,23 @@ describe("auth validation", () => {
       firstName: "Awa",
       lastName: "Koné",
       email: "awa@example.com",
+      whatsapp: "+2250700000000",
       password: "motdepasse",
       acceptTerms: true,
     });
     expect(result.success).toBe(true);
+  });
+
+  it("exige un numéro WhatsApp à l'inscription", () => {
+    const result = registerSchema.safeParse({
+      firstName: "Awa",
+      lastName: "Koné",
+      email: "awa@example.com",
+      whatsapp: "",
+      password: "motdepasse",
+      acceptTerms: true,
+    });
+    expect(result.success).toBe(false);
   });
 
   it("refuse un e-mail invalide à la connexion", () => {

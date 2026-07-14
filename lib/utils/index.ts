@@ -6,7 +6,18 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getAppName(): string {
-  return process.env.NEXT_PUBLIC_APP_NAME ?? "Académie 2000";
+  return process.env.NEXT_PUBLIC_APP_NAME ?? "Learnoon Academy";
+}
+
+/** Nom court de marque (navbar compacte, etc.). */
+export function getAppShortName(): string {
+  return process.env.NEXT_PUBLIC_APP_SHORT_NAME ?? "Learnoon";
+}
+
+export function getAppSlogan(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_SLOGAN ?? "Apprends aujourd'hui. Réussis demain."
+  );
 }
 
 export function getAppUrl(): string {

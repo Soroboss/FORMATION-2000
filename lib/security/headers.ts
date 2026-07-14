@@ -1,5 +1,5 @@
 /**
- * Security headers & CSP for Académie 2000.
+ * Security headers & CSP for Learnoon Academy.
  * CSP must allow official YouTube embeds (youtube-nocookie / youtube.com).
  */
 

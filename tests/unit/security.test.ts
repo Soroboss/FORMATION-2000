@@ -10,7 +10,7 @@ import { safeInternalPath } from "@/lib/utils";
 describe("CSP / security headers", () => {
   it("autorise YouTube et bloque object", () => {
     const csp = buildContentSecurityPolicy({
-      appUrl: "https://academie.example",
+      appUrl: "https://learnoon.example",
       insforgeUrl: "https://2ipa33bu.eu-central.insforge.app",
     });
     expect(csp).toContain("https://www.youtube-nocookie.com");

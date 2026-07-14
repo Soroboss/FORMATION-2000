@@ -6,17 +6,18 @@ export function Alert({
   className,
 }: {
   children: React.ReactNode;
-  variant?: "info" | "error" | "success";
+  variant?: "info" | "error" | "success" | "warning";
   className?: string;
 }) {
   return (
     <div
       role="alert"
       className={cn(
-        "rounded-lg border px-3 py-2 text-sm",
-        variant === "error" && "border-red-200 bg-red-50 text-red-800",
-        variant === "success" && "border-emerald-200 bg-emerald-50 text-emerald-800",
-        variant === "info" && "border-brand-200 bg-brand-50 text-brand-900",
+        "rounded-soft border px-3 py-2 text-sm",
+        variant === "error" && "border-danger/30 bg-danger-50 text-danger-700",
+        variant === "success" && "border-progress-200 bg-progress-50 text-progress-700",
+        variant === "warning" && "border-action-200 bg-action-50 text-action-800",
+        variant === "info" && "border-info/30 bg-info-50 text-info-700",
         className,
       )}
     >

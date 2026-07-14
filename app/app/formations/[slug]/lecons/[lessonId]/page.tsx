@@ -101,7 +101,7 @@ export default async function LessonPage({
           </p>
           <Link
             href="/app/abonnement"
-            className="mt-4 inline-flex h-10 items-center rounded-lg bg-action-600 px-4 text-sm font-semibold text-white hover:bg-action-700"
+            className="mt-4 inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Voir l&apos;abonnement
           </Link>

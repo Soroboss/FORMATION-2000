@@ -12,6 +12,13 @@ export const registerSchema = z.object({
     .min(1, "Le nom est requis.")
     .max(80, "Nom trop long."),
   email: z.email("Adresse e-mail invalide."),
+  whatsapp: z
+    .string()
+    .trim()
+    .min(8, "Le numéro WhatsApp est requis.")
+    .max(20, "Numéro WhatsApp trop long.")
+    .regex(/^\+?[\d\s.-]{8,20}$/, "Numéro WhatsApp invalide.")
+    .transform((value) => value.replace(/[^\d+]/g, "")),
   password: z
     .string()
     .min(8, "Le mot de passe doit contenir au moins 8 caractères.")

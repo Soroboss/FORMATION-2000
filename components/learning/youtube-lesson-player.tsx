@@ -156,7 +156,7 @@ export function YouTubeLessonPlayer({
         )}
         {!ready && !useFallback ? (
           <div className="absolute inset-0 flex items-center justify-center text-sm text-white/80">
-            Chargement du lecteur YouTube…
+            Chargement du lecteur vidéo…
           </div>
         ) : null}
       </div>
@@ -180,7 +180,7 @@ export function YouTubeLessonPlayer({
               )}
             </p>
           ) : (
-            <p>Vidéo YouTube intégrée via le lecteur officiel.</p>
+            <p>Vidéo intégrée via le lecteur officiel de la source.</p>
           )}
         </div>
         <a
@@ -189,7 +189,7 @@ export function YouTubeLessonPlayer({
           rel="noopener noreferrer"
           className="inline-flex h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 hover:bg-slate-50"
         >
-          Voir sur YouTube
+          Voir la source
         </a>
       </div>
     </div>

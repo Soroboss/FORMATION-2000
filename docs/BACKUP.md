@@ -5,16 +5,16 @@
 Exporter le schéma / données :
 
 ```bash
-cd "/Users/macbookpro/PROJET CURSOR/academie-2000"
+cd "/chemin/vers/learnoon-academy"
 npx @insforge/cli whoami
 npx @insforge/cli current
-npx @insforge/cli db export --output "backups/academie-$(date +%Y%m%d-%H%M%S).sql"
+npx @insforge/cli db export --output "backups/learnoon-$(date +%Y%m%d-%H%M%S).sql"
 ```
 
 Restaurer (environnement de secours uniquement — **jamais** sur prod sans validation) :
 
 ```bash
-npx @insforge/cli db import backups/academie-YYYYMMDD-HHMMSS.sql
+npx @insforge/cli db import backups/learnoon-YYYYMMDD-HHMMSS.sql
 ```
 
 ## Contenu applicatif

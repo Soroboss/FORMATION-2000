@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/logo";
 import { getAppName } from "@/lib/utils";
 
 const links = [
@@ -16,19 +17,22 @@ export function PublicFooter() {
 
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <p className="text-sm text-slate-600">
-          © {year} {appName}. Formation par abonnement — Côte d&apos;Ivoire.
-        </p>
-        <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
-          {links.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className="hover:text-brand-800 hover:underline">
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:px-6">
+        <BrandLogo className="self-start" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-slate-600">
+            © {year} {appName}. Formation par abonnement — Côte d&apos;Ivoire.
+          </p>
+          <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+            {links.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="hover:text-brand-800 hover:underline">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </footer>
   );

@@ -1,8 +1,8 @@
-# Académie 2000
+# Learnoon Academy
 
 Plateforme de formation par abonnement (2 000 FCFA / 30 jours) pour la Côte d’Ivoire et l’Afrique francophone.
 
-**Source de vérité :** [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) · [`AGENTS.md`](AGENTS.md)
+**Source de vérité :** [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) · [`docs/BRAND_IDENTITY.md`](docs/BRAND_IDENTITY.md) · [`AGENTS.md`](AGENTS.md)
 
 ## Stack
 
@@ -73,7 +73,7 @@ npm install
 
 # 2. Authentifier InsForge (interactif)
 npx @insforge/cli login
-npx @insforge/cli create --json --name academie-2000 --template blank --region us-east
+npx @insforge/cli create --json --name learnoon-academy --template blank --region us-east
 # ou : npx @insforge/cli link
 
 # 3. Récupérer les clés

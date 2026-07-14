@@ -17,6 +17,6 @@ Exécuter manuellement sur preview puis production.
 | 11 | Membre → `/admin` | Redirigé hors admin |
 | 12 | Admin → CRUD formation | Création / publication OK |
 | 13 | Mobile | Menu, lecture, paiement utilisables |
-| 14 | `/api/health` | `ok: true`, phase 7 |
+| 14 | `/api/health` | `ok: true`, phase 8 |
 
 Cocher et conserver la date + environnement (preview / prod).

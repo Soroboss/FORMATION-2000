@@ -54,5 +54,14 @@ Simple · professionnel · motivant · accessible · inspirant · jamais compliq
 
 - `tailwind.config.js` — tokens
 - `app/globals.css` — variables CSS + utilitaires
-- Mark : `/public/brand/logo-mark.png` (favicon / headers)
+- Mark paysage (headers / UI) : `/public/brand/logo-mark.png`
+- Mark **carré** (favicon / PWA) : `/public/brand/icon-512.png`, `/app/icon.png`, `/app/apple-icon.png`, `/app/favicon.ico`
+- Open Graph : `/app/opengraph-image.png` (1200×630)
 - Full : `/public/brand/logo-official.png` (auth, hero)
+- Régénération : `npm run icons:generate`
+
+### Règle favicon / OG
+
+- Favicon, apple-touch et icônes PWA : **toujours carrés** (16 / 32 / 48 / 180 / 512).
+- Ne jamais servir `logo-mark.png` (1024×704) comme `rel="icon"`.
+- Open Graph / Twitter : 1200×630.

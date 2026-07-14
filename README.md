@@ -63,6 +63,12 @@ Plateforme de formation par abonnement (2 000 FCFA / 30 jours) pour la Côte d�
 - Garde-fous production (sandbox), health readiness, robots/sitemap
 - Docs go-live / smoke tests / paiements prod
 
+## Phase 8 (favicon + polish go-live)
+
+- Icônes carrées universelles (`favicon.ico`, `icon.png`, apple-touch)
+- Open Graph 1200×630 + web app manifest
+- Docs brand / `PHASE8.md` — régénération via `npm run icons:generate`
+
 **PSP Mobile Money réel** : non branché tant que le fournisseur n’est pas choisi.
 
 ## Démarrage local

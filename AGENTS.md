@@ -65,7 +65,7 @@ npx @insforge/cli db migrations up --all
 ## Phase discipline
 
 Ne pas implémenter plusieurs phases en une seule demande.
-Phase courante : **Phase 7 — Lancement** (attestations, support, go-live, garde-fous prod).
-Paiements Mobile Money réels : à brancher après choix du PSP (`docs/PAYMENTS_PRODUCTION.md`).
+Phase courante : **Phase 8 — Favicon universel + polish go-live**.
+Paiements Mobile Money réels : à brancher après choix du PSP (`docs/PAYMENTS_PRODUCTION.md`) — Phase 9.
 Ne jamais activer un abonnement depuis une redirection client seule.
 Ne jamais simuler un paiement réussi en production Vercel.

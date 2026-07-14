@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { startCheckoutAction, type CheckoutActionResult } from "@/server/actions/payments";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
@@ -27,7 +28,14 @@ export function CheckoutButton({
       <input type="hidden" name="planSlug" value={planSlug} />
       {result && !result.success ? (
         <Alert variant="error" className="mb-3">
-          {result.error}
+          <p>{result.error}</p>
+          {result.fallbackManual ? (
+            <p className="mt-2">
+              <Link href="/paiement/manuel" className="font-semibold underline">
+                Continuer avec Mobile Money + WhatsApp
+              </Link>
+            </p>
+          ) : null}
         </Alert>
       ) : null}
       <Button type="submit" size="lg" className="w-full" disabled={pending}>

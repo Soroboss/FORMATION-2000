@@ -56,8 +56,11 @@ const ROLE_LABEL: Record<string, string> = {
 const LESSON_TYPE: Record<string, string> = {
   youtube: "Vidéo",
   text: "Texte",
+  exercise: "Exercice",
   quiz: "Quiz",
   assignment: "Exercice",
+  resource: "Ressource",
+  project: "Projet",
 };
 
 function label(map: Record<string, string>, value: string | null | undefined): string {

@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPaymentProvider } from "@/lib/payments/provider";
 import { processPaymentWebhook } from "@/server/services/payments";
 
+/** CinetPay vérifie que l’URL de notification répond en GET. */
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ provider: string }> },
+) {
+  const { provider } = await context.params;
+  return NextResponse.json({ ok: true, provider });
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ provider: string }> },
@@ -19,6 +28,12 @@ export async function POST(
     }
 
     const event = await provider.parseWebhook(request);
+
+    // Ping / disponibilité — ne traite pas un vrai paiement.
+    if (event.eventType === "ping" || event.providerReference === "ping") {
+      return NextResponse.json({ ok: true, ping: true });
+    }
+
     const result = await processPaymentWebhook(provider.name, event);
 
     console.log(

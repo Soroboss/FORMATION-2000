@@ -8,16 +8,25 @@ import {
   courseUpsertSchema,
   lessonUpsertSchema,
   moduleUpsertSchema,
+  quickAddVideoLessonSchema,
+  bulkCreateFormationsSchema,
 } from "@/lib/validation/admin";
 import {
+  createReadyFormation,
   deleteCourse,
+  ensureDefaultModule,
+  listLessonsForModule,
   publishCourse,
+  upsertAssignmentForLesson,
   upsertCategory,
   upsertCourse,
   upsertLesson,
+  upsertLessonInstructions,
   upsertModule,
 } from "@/server/repositories/admin-catalog";
 import type { CourseStatus } from "@/types/catalog";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 
 function formString(fd: FormData, key: string) {
   return String(fd.get(key) ?? "").trim();
@@ -180,24 +189,30 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
   try {
     const session = await requireAdminSession();
     const courseId = formString(formData, "courseId");
+    const lessonType = formString(formData, "lessonType") || "youtube";
+    const youtubeUrl = formString(formData, "youtubeUrl");
+    const statusRaw = formString(formData, "status");
     const parsed = lessonUpsertSchema.safeParse({
       moduleId: formString(formData, "moduleId"),
       title: formString(formData, "title"),
       slug: formString(formData, "slug"),
-      lessonType: formString(formData, "lessonType") || "youtube",
+      lessonType,
       description: formString(formData, "description"),
       estimatedDurationMinutes: formString(formData, "estimatedDurationMinutes") || 0,
       sortOrder: formString(formData, "sortOrder") || 0,
       isPreview: formBool(formData, "isPreview"),
       isRequired: formBool(formData, "isRequired"),
-      status: formString(formData, "status") || "draft",
-      youtubeUrl: formString(formData, "youtubeUrl"),
+      status: statusRaw || (youtubeUrl ? "published" : "draft"),
+      youtubeUrl,
       channelName: formString(formData, "channelName"),
       channelUrl: formString(formData, "channelUrl"),
       originalTitle: formString(formData, "originalTitle"),
     });
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+    }
+    if (parsed.data.lessonType === "youtube" && !parsed.data.youtubeUrl) {
+      throw new Error("Ajoutez le lien YouTube de la vidéo");
     }
     const id = formString(formData, "id") || undefined;
     const lesson = await upsertLesson({ id, ...parsed.data });
@@ -212,5 +227,161 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+/**
+ * Parcours guidé : titre + lien YouTube + visibilité (+ consignes / exercice optionnels).
+ * Crée un module par défaut si besoin.
+ */
+export async function quickAddVideoLessonAction(formData: FormData): Promise<void> {
+  try {
+    const session = await requireAdminSession();
+    const parsed = quickAddVideoLessonSchema.safeParse({
+      courseId: formString(formData, "courseId"),
+      moduleId: formString(formData, "moduleId") || undefined,
+      title: formString(formData, "title"),
+      youtubeUrl: formString(formData, "youtubeUrl"),
+      visibility: formString(formData, "visibility") || "subscribers",
+      instructions: formString(formData, "instructions"),
+      exerciseTitle: formString(formData, "exerciseTitle"),
+      exerciseInstructions: formString(formData, "exerciseInstructions"),
+      publishCourse: formBool(formData, "publishCourse"),
+    });
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+    }
+
+    const { courseId, title, youtubeUrl, visibility } = parsed.data;
+    const targetModule = parsed.data.moduleId
+      ? { id: parsed.data.moduleId }
+      : await ensureDefaultModule(courseId);
+
+    const existingLessons = await listLessonsForModule(targetModule.id);
+    const status = visibility === "draft" ? "draft" : "published";
+    const isPreview = visibility === "preview";
+
+    const lesson = await upsertLesson({
+      moduleId: targetModule.id,
+      title,
+      lessonType: "youtube",
+      estimatedDurationMinutes: 0,
+      sortOrder: existingLessons.length,
+      isPreview,
+      isRequired: true,
+      status,
+      youtubeUrl,
+    });
+
+    if (parsed.data.instructions?.trim()) {
+      await upsertLessonInstructions({
+        lessonId: lesson.id,
+        summary: parsed.data.instructions.trim(),
+        objective: title,
+      });
+    }
+
+    if (parsed.data.exerciseTitle?.trim() && parsed.data.exerciseInstructions?.trim()) {
+      await upsertAssignmentForLesson({
+        courseId,
+        moduleId: targetModule.id,
+        lessonId: lesson.id,
+        title: parsed.data.exerciseTitle.trim(),
+        instructions: parsed.data.exerciseInstructions.trim(),
+      });
+    }
+
+    if (parsed.data.publishCourse) {
+      await publishCourse(courseId);
+    }
+
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "lesson.quick_add_video",
+      entityType: "lesson",
+      entityId: lesson.id,
+      newValues: {
+        title: lesson.title,
+        youtubeUrl: lesson.youtubeUrl,
+        visibility,
+        publishedCourse: parsed.data.publishCourse,
+      },
+    });
+
+    revalidatePath(`/admin/formations/${courseId}`);
+    revalidatePath("/admin/formations");
+    revalidatePath("/formations");
+    revalidatePath("/app");
+    return;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+export type BulkCreateFormationsState = {
+  ok: boolean;
+  message: string;
+  created?: number;
+};
+
+/**
+ * Crée plusieurs formations d’un coup (titre + lien YouTube + visibilité).
+ * Chaque ligne = formation publiée + vidéo pour abonnés (sauf brouillon).
+ */
+export async function bulkCreateFormationsAction(
+  _prev: BulkCreateFormationsState,
+  formData: FormData,
+): Promise<BulkCreateFormationsState> {
+  try {
+    const session = await requireAdminSession();
+    let items: unknown;
+    try {
+      items = JSON.parse(formString(formData, "payload") || "[]");
+    } catch {
+      return { ok: false, message: "Données invalides" };
+    }
+
+    const parsed = bulkCreateFormationsSchema.safeParse({ items });
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: parsed.error.issues[0]?.message ?? "Vérifiez les lignes",
+      };
+    }
+
+    const created: string[] = [];
+    for (const item of parsed.data.items) {
+      const result = await createReadyFormation({
+        title: item.title,
+        youtubeUrl: item.youtubeUrl,
+        visibility: item.visibility,
+        authorUserId: session.user.id,
+      });
+      created.push(result.courseId);
+      await writeAuditLog({
+        actorUserId: session.user.id,
+        action: "course.bulk_create",
+        entityType: "course",
+        entityId: result.courseId,
+        newValues: {
+          title: item.title,
+          youtubeUrl: item.youtubeUrl,
+          visibility: item.visibility,
+          lessonId: result.lessonId,
+        },
+      });
+    }
+
+    revalidatePath("/admin/formations");
+    revalidatePath("/formations");
+    revalidatePath("/app");
+
+    redirect(`/admin/formations?created=${created.length}`);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Création impossible",
+    };
   }
 }

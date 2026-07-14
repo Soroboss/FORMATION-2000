@@ -425,3 +425,141 @@ export async function upsertLesson(input: {
     channelName,
   };
 }
+
+/** Crée un module « Parcours principal » s’il n’en existe aucun. */
+export async function ensureDefaultModule(courseId: string): Promise<AdminModule> {
+  const existing = await listModulesForCourse(courseId);
+  if (existing[0]) return existing[0];
+  return upsertModule({
+    courseId,
+    title: "Parcours principal",
+    description: "Module créé automatiquement pour vos vidéos",
+    sortOrder: 0,
+  });
+}
+
+export async function upsertLessonInstructions(input: {
+  lessonId: string;
+  summary?: string;
+  objective?: string;
+}): Promise<void> {
+  const client = await getAdminDbClient();
+  const summary = input.summary?.trim() || null;
+  const objective = input.objective?.trim() || null;
+  if (!summary && !objective) return;
+
+  const { error } = await client.database.from("lesson_instructions").upsert(
+    {
+      lesson_id: input.lessonId,
+      summary,
+      objective,
+      key_points: [],
+      steps: [],
+      common_mistakes: [],
+      tips: [],
+    },
+    { onConflict: "lesson_id" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function upsertAssignmentForLesson(input: {
+  courseId: string;
+  moduleId: string;
+  lessonId: string;
+  title: string;
+  instructions: string;
+}): Promise<void> {
+  const client = await getAdminDbClient();
+  const title = input.title.trim();
+  const instructions = input.instructions.trim();
+  if (!title || !instructions) return;
+
+  const { data: existing } = await client.database
+    .from("assignments")
+    .select("id")
+    .eq("lesson_id", input.lessonId)
+    .limit(1)
+    .maybeSingle();
+
+  const payload = {
+    course_id: input.courseId,
+    module_id: input.moduleId,
+    lesson_id: input.lessonId,
+    title,
+    instructions,
+    expected_deliverables: [],
+    evaluation_criteria: [],
+    is_required: true,
+  };
+
+  if (existing?.id) {
+    const { error } = await client.database
+      .from("assignments")
+      .update(payload)
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const { error } = await client.database.from("assignments").insert(payload);
+  if (error) throw new Error(error.message);
+}
+
+export async function countPublishedLessonsWithVideo(courseId: string): Promise<number> {
+  const modules = await listModulesForCourse(courseId);
+  let count = 0;
+  for (const mod of modules) {
+    const lessons = await listLessonsForModule(mod.id);
+    count += lessons.filter(
+      (l) => l.status === "published" && Boolean(l.youtubeUrl),
+    ).length;
+  }
+  return count;
+}
+
+/**
+ * Crée une formation complète en une fois : fiche + module + leçon YouTube.
+ * Prête pour les abonnés si visibility !== draft.
+ */
+export async function createReadyFormation(input: {
+  title: string;
+  youtubeUrl: string;
+  visibility: "subscribers" | "preview" | "draft";
+  authorUserId: string;
+}): Promise<{ courseId: string; lessonId: string; slug: string }> {
+  const isDraft = input.visibility === "draft";
+  const isPreview = input.visibility === "preview";
+  const uniqueSlug = `${slugify(input.title)}-${Date.now().toString(36).slice(-4)}`;
+
+  const course = await upsertCourse({
+    title: input.title,
+    slug: uniqueSlug,
+    accessType: "subscription",
+    estimatedDurationMinutes: 0,
+    isFeatured: false,
+    status: isDraft ? "draft" : "published",
+    authorUserId: input.authorUserId,
+  });
+
+  const mod = await upsertModule({
+    courseId: course.id,
+    title: "Parcours principal",
+    description: "",
+    sortOrder: 0,
+  });
+
+  const lesson = await upsertLesson({
+    moduleId: mod.id,
+    title: input.title,
+    lessonType: "youtube",
+    estimatedDurationMinutes: 0,
+    sortOrder: 0,
+    isPreview,
+    isRequired: true,
+    status: isDraft ? "draft" : "published",
+    youtubeUrl: input.youtubeUrl,
+  });
+
+  return { courseId: course.id, lessonId: lesson.id, slug: course.slug };
+}

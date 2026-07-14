@@ -13,8 +13,12 @@ const links = [
 
 export function MobileNav({
   isAuthenticated,
+  homeHref = "/app/tableau-de-bord",
+  homeLabel = "Mon espace",
 }: {
   isAuthenticated: boolean;
+  homeHref?: string;
+  homeLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -50,11 +54,11 @@ export function MobileNav({
             ))}
             {isAuthenticated ? (
               <Link
-                href="/app/tableau-de-bord"
+                href={homeHref}
                 className="rounded-lg bg-brand-700 px-3 py-3 text-center text-sm font-semibold text-white"
                 onClick={() => setOpen(false)}
               >
-                Mon espace
+                {homeLabel}
               </Link>
             ) : (
               <>

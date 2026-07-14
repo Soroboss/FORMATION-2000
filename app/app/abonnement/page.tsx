@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { getCheckoutCapability } from "@/lib/payments/checkout-mode";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import {
   getLatestSubscriptionForUser,
@@ -22,6 +23,12 @@ export default async function AbonnementPage() {
   ]);
 
   const plan = subscription ? await getPlanById(subscription.planId) : plans[0];
+  const checkout = getCheckoutCapability();
+  const payLabel = hasPremium
+    ? checkout.mode === "online"
+      ? "Renouveler maintenant"
+      : "Renouveler via WhatsApp"
+    : checkout.label;
 
   return (
     <section className="space-y-6">
@@ -59,10 +66,17 @@ export default async function AbonnementPage() {
               {plan.priceAmount.toLocaleString("fr-FR")} {plan.currency} / {plan.durationDays}{" "}
               jours
             </p>
-            <CheckoutButton
-              planSlug={plan.slug}
-              label={hasPremium ? "Renouveler maintenant" : "Payer 2 000 FCFA"}
-            />
+            <p className="text-xs text-ink-muted">{checkout.hint}</p>
+            {checkout.mode === "online" ? (
+              <CheckoutButton planSlug={plan.slug} label={payLabel} />
+            ) : (
+              <Link
+                href="/paiement/manuel"
+                className="inline-flex h-12 w-full items-center justify-center rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                {payLabel}
+              </Link>
+            )}
             <Link
               href="/paiement"
               className="inline-flex h-11 w-full items-center justify-center rounded-brand border-2 border-brand-600 text-sm font-semibold text-brand-600 hover:bg-brand-50"
@@ -72,12 +86,14 @@ export default async function AbonnementPage() {
           </div>
         ) : null}
 
-        <p className="mt-6 text-sm text-ink-muted">
-          Le paiement en ligne ne passe pas ?{" "}
-          <Link href="/paiement/manuel" className="font-semibold text-brand-600 hover:underline">
-            Payer via Mobile Money + WhatsApp
-          </Link>
-        </p>
+        {checkout.mode === "online" ? (
+          <p className="mt-6 text-sm text-ink-muted">
+            Le paiement en ligne ne passe pas ?{" "}
+            <Link href="/paiement/manuel" className="font-semibold text-brand-600 hover:underline">
+              Payer via Mobile Money + WhatsApp
+            </Link>
+          </p>
+        ) : null}
         <p className="mt-2 text-sm">
           <Link href="/app/catalogue" className="font-semibold text-brand-600 hover:underline">
             Explorer le catalogue

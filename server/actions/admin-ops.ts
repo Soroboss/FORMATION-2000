@@ -6,15 +6,26 @@ import { writeAuditLog } from "@/lib/audit/write";
 import {
   assignRoleSchema,
   extendSubscriptionSchema,
+  inviteCollaboratorSchema,
   memberStatusSchema,
   reviewSubmissionSchema,
   settingUpdateSchema,
 } from "@/lib/validation/admin";
-import { assignRole, removeRole, updateMemberStatus } from "@/server/repositories/admin-members";
+import {
+  assignRole,
+  countUsersWithRole,
+  createCollaborator,
+  removeRole,
+  updateMemberStatus,
+} from "@/server/repositories/admin-members";
 import { extendSubscription } from "@/server/repositories/admin-payments";
 import { reviewSubmission } from "@/server/repositories/admin-learning";
 import { updateSetting } from "@/server/repositories/admin-settings";
-import type { RoleKey } from "@/lib/permissions/roles";
+import {
+  assertCanAssignRole,
+  canManageMemberRoles,
+  type RoleKey,
+} from "@/lib/permissions/roles";
 
 function formString(fd: FormData, key: string) {
   return String(fd.get(key) ?? "").trim();
@@ -23,6 +34,9 @@ function formString(fd: FormData, key: string) {
 export async function updateMemberStatusAction(formData: FormData): Promise<void> {
   try {
     const session = await requireAdminSession();
+    if (!canManageMemberRoles(session.roles)) {
+      throw new Error("Permission insuffisante pour modifier le statut d’un membre.");
+    }
     const parsed = memberStatusSchema.safeParse({
       userId: formString(formData, "userId"),
       status: formString(formData, "status"),
@@ -40,6 +54,7 @@ export async function updateMemberStatusAction(formData: FormData): Promise<void
     });
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
+    revalidatePath("/admin/parametres");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
@@ -56,16 +71,19 @@ export async function assignRoleAction(formData: FormData): Promise<void> {
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
     }
-    await assignRole(parsed.data.userId, parsed.data.roleKey as RoleKey);
+    const roleKey = parsed.data.roleKey as RoleKey;
+    assertCanAssignRole(session.roles, roleKey);
+    await assignRole(parsed.data.userId, roleKey);
     await writeAuditLog({
       actorUserId: session.user.id,
       action: "member.role.assign",
       entityType: "user_roles",
       entityId: parsed.data.userId,
-      newValues: { role: parsed.data.roleKey },
+      newValues: { role: roleKey },
     });
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
+    revalidatePath("/admin/parametres");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
@@ -82,19 +100,102 @@ export async function removeRoleAction(formData: FormData): Promise<void> {
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
     }
-    await removeRole(parsed.data.userId, parsed.data.roleKey as RoleKey);
+    const roleKey = parsed.data.roleKey as RoleKey;
+    assertCanAssignRole(session.roles, roleKey);
+
+    if (roleKey === "super_admin") {
+      const count = await countUsersWithRole("super_admin");
+      if (count <= 1) {
+        throw new Error("Impossible de retirer le dernier super administrateur.");
+      }
+    }
+
+    await removeRole(parsed.data.userId, roleKey);
     await writeAuditLog({
       actorUserId: session.user.id,
       action: "member.role.remove",
       entityType: "user_roles",
       entityId: parsed.data.userId,
-      newValues: { role: parsed.data.roleKey },
+      newValues: { role: roleKey },
     });
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
+    revalidatePath("/admin/parametres");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+export type InviteCollaboratorState = {
+  ok: boolean;
+  message: string;
+  memberId?: string;
+  email?: string;
+};
+
+export async function inviteCollaboratorAction(
+  _prev: InviteCollaboratorState,
+  formData: FormData,
+): Promise<InviteCollaboratorState> {
+  try {
+    const session = await requireAdminSession();
+    if (!canManageMemberRoles(session.roles)) {
+      return {
+        ok: false,
+        message: "Seuls les administrateurs peuvent créer des collaborateurs.",
+      };
+    }
+
+    const parsed = inviteCollaboratorSchema.safeParse({
+      firstName: formString(formData, "firstName"),
+      lastName: formString(formData, "lastName"),
+      email: formString(formData, "email").toLowerCase(),
+      password: String(formData.get("password") ?? ""),
+      roleKey: formString(formData, "roleKey"),
+      whatsapp: formString(formData, "whatsapp"),
+    });
+    if (!parsed.success) {
+      return {
+        ok: false,
+        message: parsed.error.issues[0]?.message ?? "Données invalides",
+      };
+    }
+
+    assertCanAssignRole(session.roles, parsed.data.roleKey);
+
+    const member = await createCollaborator({
+      email: parsed.data.email,
+      password: parsed.data.password,
+      firstName: parsed.data.firstName,
+      lastName: parsed.data.lastName,
+      whatsapp: parsed.data.whatsapp || undefined,
+      roleKey: parsed.data.roleKey,
+    });
+
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "member.collaborator.create",
+      entityType: "profile",
+      entityId: member.id,
+      newValues: { email: member.email, role: parsed.data.roleKey },
+    });
+
+    revalidatePath("/admin/membres");
+    revalidatePath(`/admin/membres/${member.id}`);
+    revalidatePath("/admin/parametres");
+
+    return {
+      ok: true,
+      message: `Collaborateur créé : ${member.email}. Il peut se connecter avec le mot de passe défini.`,
+      memberId: member.id,
+      email: member.email ?? undefined,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Création impossible",
+    };
   }
 }
 
@@ -174,6 +275,49 @@ export async function updateSettingAction(formData: FormData): Promise<void> {
       entityId: parsed.data.key,
     });
     revalidatePath("/admin/parametres");
+    revalidatePath("/paiement/manuel");
+    return;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+export async function updateManualPaymentConfigAction(formData: FormData): Promise<void> {
+  try {
+    const session = await requireAdminSession();
+    const contacts = [0, 1, 2]
+      .map((i) => ({
+        label: formString(formData, `contact_${i}_label`),
+        number: formString(formData, `contact_${i}_number`).replace(/\s+/g, ""),
+        name: formString(formData, `contact_${i}_name`) || undefined,
+      }))
+      .filter((c) => c.label && c.number);
+
+    const value = {
+      enabled: formData.get("enabled") === "on" || formData.get("enabled") === "true",
+      whatsapp: formString(formData, "whatsapp").replace(/\D/g, ""),
+      whatsappMessage: formString(formData, "whatsappMessage"),
+      instructions: formString(formData, "instructions"),
+      contacts,
+    };
+
+    if (!value.whatsappMessage) {
+      throw new Error("Le message WhatsApp est requis");
+    }
+    if (!value.instructions) {
+      throw new Error("Les consignes de paiement sont requises");
+    }
+
+    await updateSetting("manual_payment.config", value, session.user.id);
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "settings.update",
+      entityType: "app_settings",
+      entityId: "manual_payment.config",
+      newValues: { enabled: value.enabled, contacts: value.contacts.length },
+    });
+    revalidatePath("/admin/parametres");
+    revalidatePath("/paiement/manuel");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));

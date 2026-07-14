@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/logo";
 import { getSession } from "@/lib/auth/session";
+import { defaultHomeForRoles } from "@/lib/permissions/roles";
 import { logoutAction } from "@/server/actions/auth";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/public/mobile-nav";
 
 export async function PublicHeader() {
   const session = await getSession();
+  const homeHref = session ? defaultHomeForRoles(session.roles) : "/connexion";
+  const homeLabel =
+    session && homeHref.startsWith("/admin") ? "Administration" : "Mon espace";
 
   return (
     <header className="relative border-b border-white/40 bg-white/80 backdrop-blur">
@@ -34,10 +38,10 @@ export async function PublicHeader() {
           {session ? (
             <>
               <Link
-                href="/app/tableau-de-bord"
+                href={homeHref}
                 className="inline-flex h-10 min-h-10 items-center rounded-lg border border-brand-200 bg-white px-3 text-sm font-semibold text-brand-900 hover:bg-brand-50"
               >
-                Mon espace
+                {homeLabel}
               </Link>
               <form action={logoutAction}>
                 <Button type="submit" variant="ghost" size="sm">
@@ -62,7 +66,11 @@ export async function PublicHeader() {
             </>
           )}
         </nav>
-        <MobileNav isAuthenticated={Boolean(session)} />
+        <MobileNav
+          isAuthenticated={Boolean(session)}
+          homeHref={homeHref}
+          homeLabel={homeLabel}
+        />
       </div>
     </header>
   );

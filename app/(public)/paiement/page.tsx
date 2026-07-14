@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
+import { getCheckoutCapability } from "@/lib/payments/checkout-mode";
 import { listActivePlans } from "@/server/repositories/payments";
 import { CheckoutButton } from "@/features/payments/checkout-button";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Paiement",
@@ -18,6 +19,7 @@ export default async function PaiementPage() {
 
   const plans = await listActivePlans();
   const plan = plans[0];
+  const checkout = getCheckoutCapability();
 
   return (
     <section className="mx-auto max-w-lg px-4 py-12 sm:px-6">
@@ -47,22 +49,40 @@ export default async function PaiementPage() {
           </p>
         )}
 
-        <div className="mt-6">
-          {plan ? <CheckoutButton planSlug={plan.slug} /> : null}
-        </div>
+        <div className="mt-6 space-y-3">
+          <p className="text-sm text-slate-600">{checkout.hint}</p>
 
-        <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
-          <p className="text-sm text-slate-700">Le paiement en ligne ne passe pas ?</p>
-          <Link
-            href="/paiement/manuel"
-            className="mt-2 inline-flex h-11 items-center justify-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-900 hover:bg-brand-50"
-          >
-            Payer par Mobile Money (WhatsApp)
-          </Link>
+          {plan && checkout.mode === "online" ? (
+            <CheckoutButton planSlug={plan.slug} label={checkout.label} />
+          ) : (
+            <Link
+              href="/paiement/manuel"
+              className="inline-flex h-12 w-full items-center justify-center rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              {checkout.label}
+            </Link>
+          )}
+
+          {checkout.mode === "online" ? (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+              <p className="text-sm text-slate-700">Le paiement en ligne ne passe pas ?</p>
+              <Link
+                href="/paiement/manuel"
+                className="mt-2 inline-flex h-11 items-center justify-center rounded-lg border border-brand-200 bg-white px-4 text-sm font-semibold text-brand-900 hover:bg-brand-50"
+              >
+                Payer par Mobile Money (WhatsApp)
+              </Link>
+            </div>
+          ) : (
+            <p className="text-center text-xs text-slate-500">
+              Dès que CinetPay est branché (`PAYMENT_PROVIDER=cinetpay` + clés), le bouton basculera
+              vers le paiement automatique.
+            </p>
+          )}
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500">
-          Mode en ligne : <code>{process.env.PAYMENT_PROVIDER ?? "sandbox"}</code>
+          Moteur : <code>{checkout.provider}</code>
         </p>
         <p className="mt-2 text-center text-sm">
           <Link href="/app/abonnement" className="font-semibold text-brand-700 hover:underline">

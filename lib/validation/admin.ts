@@ -50,6 +50,45 @@ export const lessonUpsertSchema = z.object({
   originalTitle: z.string().trim().max(300).optional().or(z.literal("")),
 });
 
+/** Ajout rapide d’une vidéo YouTube (parcours admin guidé). */
+export const quickAddVideoLessonSchema = z
+  .object({
+    courseId: z.string().uuid(),
+    moduleId: z.string().uuid().optional().or(z.literal("")),
+    title: z.string().trim().min(2, "Titre trop court").max(200),
+    youtubeUrl: z.string().trim().min(8, "Lien YouTube requis").max(500),
+    visibility: z.enum(["subscribers", "preview", "draft"]).default("subscribers"),
+    instructions: z.string().trim().max(5000).optional().or(z.literal("")),
+    exerciseTitle: z.string().trim().max(200).optional().or(z.literal("")),
+    exerciseInstructions: z.string().trim().max(5000).optional().or(z.literal("")),
+    publishCourse: z.coerce.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    const hasExerciseTitle = Boolean(data.exerciseTitle?.trim());
+    const hasExerciseBody = Boolean(data.exerciseInstructions?.trim());
+    if (hasExerciseTitle !== hasExerciseBody) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Pour un exercice, renseignez le titre et les consignes",
+        path: hasExerciseTitle ? ["exerciseInstructions"] : ["exerciseTitle"],
+      });
+    }
+  });
+
+/** Création rapide d’une ou plusieurs formations (titre + lien YouTube). */
+export const bulkCreateFormationItemSchema = z.object({
+  title: z.string().trim().min(2, "Titre trop court").max(200),
+  youtubeUrl: z.string().trim().min(8, "Lien YouTube requis").max(500),
+  visibility: z.enum(["subscribers", "preview", "draft"]).default("subscribers"),
+});
+
+export const bulkCreateFormationsSchema = z.object({
+  items: z
+    .array(bulkCreateFormationItemSchema)
+    .min(1, "Ajoutez au moins une formation")
+    .max(30, "Maximum 30 formations à la fois"),
+});
+
 export const memberStatusSchema = z.object({
   userId: z.string().uuid(),
   status: z.enum(["active", "suspended", "deleted"]),
@@ -58,6 +97,18 @@ export const memberStatusSchema = z.object({
 export const assignRoleSchema = z.object({
   userId: z.string().uuid(),
   roleKey: z.enum(["learner", "curator", "instructor", "support", "admin", "super_admin"]),
+});
+
+export const inviteCollaboratorSchema = z.object({
+  firstName: z.string().trim().min(2, "Prénom trop court").max(80),
+  lastName: z.string().trim().min(2, "Nom trop court").max(80),
+  email: z.string().trim().email("E-mail invalide").max(200),
+  password: z
+    .string()
+    .min(8, "Mot de passe : 8 caractères minimum")
+    .max(128),
+  roleKey: z.enum(["curator", "instructor", "support", "admin", "super_admin"]),
+  whatsapp: z.string().trim().max(40).optional().or(z.literal("")),
 });
 
 export const extendSubscriptionSchema = z.object({

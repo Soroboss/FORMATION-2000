@@ -4,11 +4,17 @@ import { redirect } from "next/navigation";
 import { createInsForgeServerClient, tryCreateInsForgeServiceClient } from "@/lib/insforge/server";
 import { clearAuthCookies, setAuthCookies } from "@/lib/auth/cookies";
 import {
+  disableLearnerPreview,
+  enableLearnerPreview,
+} from "@/lib/auth/workspace";
+import { getSession } from "@/lib/auth/session";
+import { canAccessAdmin, resolvePostLoginPath } from "@/lib/permissions/roles";
+import {
   forgotPasswordSchema,
   loginSchema,
   registerSchema,
 } from "@/lib/validation/auth";
-import { getAppUrl, safeInternalPath } from "@/lib/utils";
+import { getAppUrl } from "@/lib/utils";
 
 export type AuthActionResult = {
   success: boolean;
@@ -104,8 +110,6 @@ export async function loginAction(formData: FormData): Promise<AuthActionResult>
     };
   }
 
-  const next = safeInternalPath(formString(formData, "next") || null);
-
   try {
     const client = createInsForgeServerClient();
     const { data, error } = await client.auth.signInWithPassword({
@@ -134,7 +138,19 @@ export async function loginAction(formData: FormData): Promise<AuthActionResult>
       .update({ last_login_at: new Date().toISOString() })
       .eq("id", data.user?.id);
 
-    redirect(next);
+    const session = await getSession();
+    const roles = session?.roles ?? ["learner"];
+    const requestedNext = formString(formData, "next") || null;
+    const destination = resolvePostLoginPath(requestedNext, roles);
+
+    // Admin qui ouvre volontairement /app → mode aperçu apprenant.
+    if (canAccessAdmin(roles) && destination.startsWith("/app")) {
+      await enableLearnerPreview();
+    } else {
+      await disableLearnerPreview();
+    }
+
+    redirect(destination);
   } catch (error) {
     if (error && typeof error === "object" && "digest" in error) {
       throw error;
@@ -153,8 +169,25 @@ export async function logoutAction(): Promise<void> {
   } catch {
     // Ignore network errors on logout — cookies are cleared regardless.
   }
+  await disableLearnerPreview();
   await clearAuthCookies();
   redirect("/connexion");
+}
+
+/** Admin → consulter l’espace apprenant (séparé, volontaire). */
+export async function enterLearnerWorkspaceAction(): Promise<void> {
+  const session = await getSession();
+  if (!session || !canAccessAdmin(session.roles)) {
+    redirect("/connexion");
+  }
+  await enableLearnerPreview();
+  redirect("/app/tableau-de-bord");
+}
+
+/** Quitter l’espace apprenant et revenir à l’administration. */
+export async function exitLearnerWorkspaceAction(): Promise<void> {
+  await disableLearnerPreview();
+  redirect("/admin/tableau-de-bord");
 }
 
 export async function forgotPasswordAction(formData: FormData): Promise<AuthActionResult> {

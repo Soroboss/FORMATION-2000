@@ -46,7 +46,14 @@ export function getLaunchReadiness(): {
 
   const provider = (process.env.PAYMENT_PROVIDER ?? "sandbox").toLowerCase();
   if (isProductionRuntime() && provider === "sandbox" && !isSandboxPaymentAllowed()) {
-    issues.push("PAYMENT_PROVIDER=sandbox interdit en production sans ALLOW_SANDBOX_IN_PRODUCTION");
+    warnings.push(
+      "PAYMENT_PROVIDER=sandbox en production → checkout manuel WhatsApp (OK). Pour l’auto : PAYMENT_PROVIDER=cinetpay + clés.",
+    );
+  }
+  if (provider === "cinetpay") {
+    if (!process.env.CINETPAY_API_KEY || !process.env.CINETPAY_SITE_ID) {
+      issues.push("CinetPay actif mais CINETPAY_API_KEY / CINETPAY_SITE_ID manquants");
+    }
   }
   if (provider === "sandbox") {
     warnings.push("Paiements en mode sandbox (pas de Mobile Money réel)");

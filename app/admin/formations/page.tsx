@@ -3,32 +3,46 @@ import { listAdminCourses } from "@/server/repositories/admin-catalog";
 import { deleteCourseAction, publishCourseAction } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import { BulkCreateFormationsForm } from "@/components/admin/bulk-create-formations-form";
 import { accessTypeLabel, courseStatusLabel } from "@/lib/admin/labels";
 
-export default async function AdminFormationsPage() {
+export default async function AdminFormationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ created?: string }>;
+}) {
+  const { created } = await searchParams;
   const courses = await listAdminCourses();
+  const createdCount = created ? Number(created) : 0;
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
         title="Formations"
-        description="Parcours du catalogue : brouillon → publication → suivi."
+        description="Ajoutez plusieurs formations d’un coup, puis gérez-les ici."
         actions={
           <Link
             href="/admin/formations/nouvelle"
             className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
           >
-            Nouvelle formation
+            Ajouter des formations
           </Link>
         }
       />
 
+      {createdCount > 0 ? (
+        <p className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
+          {createdCount} formation{createdCount > 1 ? "s" : ""} créée
+          {createdCount > 1 ? "s" : ""} — visibles pour les abonnés payants si publiées.
+        </p>
+      ) : null}
+
+      <BulkCreateFormationsForm compact />
+
       {courses.length === 0 ? (
         <AdminEmptyState
-          title="Aucune formation"
-          description="Créez la première formation pour alimenter le catalogue apprenant."
-          actionHref="/admin/formations/nouvelle"
-          actionLabel="Créer une formation"
+          title="Aucune formation pour l’instant"
+          description="Utilisez le formulaire ci-dessus : titre + lien YouTube, puis Créer."
         />
       ) : (
         <div className="ui-card overflow-x-auto">

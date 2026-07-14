@@ -2,12 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { requireSession } from "@/lib/auth/session";
+import { toFriendlyCheckoutError } from "@/lib/payments/checkout-mode";
 import { initializeCheckout } from "@/server/services/payments";
 
 export type CheckoutActionResult = {
   success: boolean;
   error?: string;
   checkoutUrl?: string;
+  fallbackManual?: boolean;
 };
 
 export async function startCheckoutAction(formData: FormData): Promise<CheckoutActionResult> {
@@ -27,12 +29,15 @@ export async function startCheckoutAction(formData: FormData): Promise<CheckoutA
     if (error && typeof error === "object" && "digest" in error) {
       throw error;
     }
+    const friendly = toFriendlyCheckoutError(error);
+    const fallbackManual =
+      friendly.includes("WhatsApp") ||
+      friendly.includes("automatique") ||
+      friendly.includes("configuré");
     return {
       success: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "Impossible d'initialiser le paiement.",
+      error: friendly,
+      fallbackManual,
     };
   }
 }

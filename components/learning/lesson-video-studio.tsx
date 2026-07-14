@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Expand, Minimize2, StickyNote, X } from "lucide-react";
+import { Expand, Minimize2, Play, StickyNote, X } from "lucide-react";
 import { LessonNotesPad } from "@/features/learning/lesson-notes-pad";
-import { youtubeEmbedUrl, youtubeWatchUrl } from "@/lib/youtube/url";
+import {
+  youtubeEmbedUrl,
+  youtubeThumbnailUrl,
+  youtubeWatchUrl,
+} from "@/lib/youtube/url";
 import { cn } from "@/lib/utils";
 
 type LessonVideoStudioProps = {
@@ -27,6 +31,7 @@ declare global {
         element: HTMLElement,
         config: {
           videoId: string;
+          host?: string;
           playerVars?: Record<string, string | number>;
           events?: {
             onReady?: (event: { target: YTPlayer }) => void;
@@ -34,7 +39,7 @@ declare global {
           };
         },
       ) => YTPlayer;
-      PlayerState: { ENDED: number; PLAYING: number };
+      PlayerState: { ENDED: number; PLAYING: number; PAUSED: number };
     };
     onYouTubeIframeAPIReady?: () => void;
   }
@@ -42,6 +47,7 @@ declare global {
 
 type YTPlayer = {
   getCurrentTime: () => number;
+  playVideo: () => void;
   destroy: () => void;
 };
 
@@ -72,9 +78,8 @@ function loadYouTubeApi(): Promise<void> {
 }
 
 /**
- * Branded lesson studio around the official YouTube IFrame API embed.
- * Views still count for the creator; we only dress the surrounding UX.
- * Theater mode uses CSS overlay so the player never remounts mid-watch.
+ * Course-style studio: Learnoon poster until click, then official YouTube embed
+ * (youtube-nocookie). Views still count on the creator’s channel.
  */
 export function LessonVideoStudio({
   videoId,
@@ -97,6 +102,7 @@ export function LessonVideoStudio({
   onProgressRef.current = onProgress;
   onEndedRef.current = onEnded;
 
+  const [started, setStarted] = useState(false);
   const [ready, setReady] = useState(false);
   const [useFallback, setUseFallback] = useState(false);
   const [theater, setTheater] = useState(false);
@@ -111,7 +117,17 @@ export function LessonVideoStudio({
     playerRef.current = null;
   }, []);
 
+  // Reset when switching lessons
   useEffect(() => {
+    setStarted(false);
+    setReady(false);
+    setUseFallback(false);
+    destroyPlayer();
+  }, [videoId, lessonId, destroyPlayer]);
+
+  useEffect(() => {
+    if (!started) return;
+
     let cancelled = false;
     let interval: ReturnType<typeof setInterval> | undefined;
 
@@ -122,22 +138,32 @@ export function LessonVideoStudio({
         await loadYouTubeApi();
         if (cancelled || !containerRef.current || !window.YT?.Player) {
           setUseFallback(true);
+          setReady(true);
           return;
         }
 
         playerRef.current = new window.YT.Player(containerRef.current, {
           videoId,
+          // Privacy-enhanced host — same official player, often fewer chrome pills
+          host: "https://www.youtube-nocookie.com",
           playerVars: {
             rel: 0,
             modestbranding: 1,
             playsinline: 1,
             iv_load_policy: 3,
             fs: 1,
+            autoplay: 1,
             start: Math.max(0, Math.floor(startAt)),
           },
           events: {
-            onReady: () => {
-              if (!cancelled) setReady(true);
+            onReady: (event) => {
+              if (cancelled) return;
+              try {
+                event.target.playVideo();
+              } catch {
+                // autoplay may be blocked; controls remain usable
+              }
+              setReady(true);
             },
             onStateChange: (event) => {
               if (event.data === window.YT?.PlayerState.ENDED) {
@@ -154,7 +180,10 @@ export function LessonVideoStudio({
           }
         }, 5000);
       } catch {
-        if (!cancelled) setUseFallback(true);
+        if (!cancelled) {
+          setUseFallback(true);
+          setReady(true);
+        }
       }
     }
 
@@ -165,7 +194,7 @@ export function LessonVideoStudio({
       if (interval) clearInterval(interval);
       destroyPlayer();
     };
-  }, [videoId, lessonId, startAt, destroyPlayer]);
+  }, [started, videoId, lessonId, startAt, destroyPlayer]);
 
   useEffect(() => {
     if (!theater) return;
@@ -183,6 +212,7 @@ export function LessonVideoStudio({
 
   const watchUrl = youtubeWatchUrl(videoId);
   const credit = channelName ?? "Créateur YouTube";
+  const poster = youtubeThumbnailUrl(videoId);
 
   return (
     <>
@@ -241,27 +271,59 @@ export function LessonVideoStudio({
                   aria-hidden
                   className="pointer-events-none absolute inset-0 z-[1] ring-1 ring-inset ring-white/10"
                 />
-                {useFallback ? (
-                  <iframe
-                    title={title}
-                    src={youtubeEmbedUrl(videoId, startAt)}
-                    className="absolute inset-0 h-full w-full"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                    loading="lazy"
-                  />
-                ) : (
-                  <div
-                    id={`yt-mount-${mountId}`}
-                    ref={containerRef}
-                    className="absolute inset-0 h-full w-full"
-                  />
-                )}
-                {!ready && !useFallback ? (
-                  <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 bg-[#0c0a09]/90 text-sm text-white/80">
-                    <span className="h-8 w-8 animate-pulse rounded-full bg-amber-500/30" />
-                    Préparation du studio…
-                  </div>
+
+                {!started ? (
+                  <button
+                    type="button"
+                    onClick={() => setStarted(true)}
+                    className="group absolute inset-0 z-[2] flex items-center justify-center"
+                    aria-label={`Lancer la leçon : ${title}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={poster}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0c0a09] via-[#0c0a09]/45 to-[#0c0a09]/20" />
+                    <div className="relative z-[3] flex flex-col items-center gap-3 px-4 text-center">
+                      <span className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500 text-[#1a1208] shadow-[0_12px_40px_rgba(245,158,11,0.45)] transition group-hover:scale-105">
+                        <Play className="ml-0.5 h-7 w-7 fill-current" aria-hidden />
+                      </span>
+                      <span className="rounded-full bg-black/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-white/90 backdrop-blur">
+                        Lancer la leçon
+                      </span>
+                      <span className="max-w-sm text-sm text-white/70">
+                        Lecteur officiel — les vues restent créditées à {credit}
+                      </span>
+                    </div>
+                  </button>
+                ) : null}
+
+                {started ? (
+                  <>
+                    {useFallback ? (
+                      <iframe
+                        title={title}
+                        src={youtubeEmbedUrl(videoId, startAt, { autoplay: true })}
+                        className="absolute inset-0 h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <div
+                        id={`yt-mount-${mountId}`}
+                        ref={containerRef}
+                        className="absolute inset-0 h-full w-full"
+                      />
+                    )}
+                    {!ready ? (
+                      <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 bg-[#0c0a09]/90 text-sm text-white/80">
+                        <span className="h-8 w-8 animate-pulse rounded-full bg-amber-500/30" />
+                        Chargement…
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
               </div>
 
@@ -283,7 +345,7 @@ export function LessonVideoStudio({
                   )}
                   <span className="hidden text-white/40 sm:inline">
                     {" "}
-                    — vues créditées à la chaîne
+                    — vues créditées sur YouTube
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -344,7 +406,9 @@ export function LessonVideoStudio({
                   lessonId={lessonId}
                   initialNote={initialNote}
                   variant="side"
-                  className={theater ? "h-full min-h-[280px]" : "min-h-[260px] lg:h-full lg:min-h-[320px]"}
+                  className={
+                    theater ? "h-full min-h-[280px]" : "min-h-[260px] lg:h-full lg:min-h-[320px]"
+                  }
                 />
               </div>
             ) : null}

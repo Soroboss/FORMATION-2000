@@ -50,16 +50,25 @@ export function youtubeWatchUrl(videoId: string): string {
   return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
-export function youtubeEmbedUrl(videoId: string, startAt = 0): string {
+export function youtubeEmbedUrl(
+  videoId: string,
+  startAt = 0,
+  opts?: { autoplay?: boolean },
+): string {
   const params = new URLSearchParams({
     rel: "0",
     modestbranding: "1",
     playsinline: "1",
+    iv_load_policy: "3",
+    fs: "1",
   });
   if (startAt > 0) {
     params.set("start", String(Math.floor(startAt)));
   }
-  // Privacy-enhanced domain when compatible — official YouTube embed still.
+  if (opts?.autoplay) {
+    params.set("autoplay", "1");
+  }
+  // Privacy-enhanced domain — official embed; often fewer share/watch-later pills.
   return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
 }
 

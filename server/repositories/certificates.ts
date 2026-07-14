@@ -15,9 +15,14 @@ export type Certificate = {
   issuedAt: string;
   revokedAt: string | null;
   courseTitle?: string;
+  memberName?: string | null;
 };
 
 function mapCertificate(row: Record<string, unknown>): Certificate {
+  const metadata =
+    row.metadata && typeof row.metadata === "object"
+      ? (row.metadata as Record<string, unknown>)
+      : {};
   return {
     id: String(row.id),
     userId: String(row.user_id),
@@ -26,6 +31,10 @@ function mapCertificate(row: Record<string, unknown>): Certificate {
     verificationToken: String(row.verification_token),
     issuedAt: String(row.issued_at),
     revokedAt: (row.revoked_at as string | null) ?? null,
+    memberName:
+      typeof metadata.memberName === "string" ? metadata.memberName : null,
+    courseTitle:
+      typeof metadata.courseTitle === "string" ? metadata.courseTitle : undefined,
   };
 }
 
@@ -52,7 +61,9 @@ export async function listCertificatesForUser(userId: string): Promise<Certifica
   if (!client) return [];
   const { data } = await client.database
     .from("certificates")
-    .select("id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at")
+    .select(
+      "id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at, metadata",
+    )
     .eq("user_id", userId)
     .order("issued_at", { ascending: false });
   if (!Array.isArray(data)) return [];
@@ -68,7 +79,9 @@ export async function getCertificateByToken(token: string): Promise<Certificate 
 
   const { data } = await client.database
     .from("certificates")
-    .select("id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at")
+    .select(
+      "id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at, metadata",
+    )
     .eq("verification_token", token)
     .maybeSingle();
 
@@ -86,7 +99,7 @@ export async function issueCertificateIfEligible(input: {
   courseTitle: string;
   progressPercent: number;
   memberName: string;
-}): Promise<Certificate | null> {
+}): Promise<{ certificate: Certificate; newlyIssued: boolean } | null> {
   if (input.progressPercent < 100) return null;
 
   const token = await getAccessToken();
@@ -95,13 +108,18 @@ export async function issueCertificateIfEligible(input: {
 
   const { data: existing } = await client.database
     .from("certificates")
-    .select("id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at")
+    .select(
+      "id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at, metadata",
+    )
     .eq("user_id", input.userId)
     .eq("course_id", input.courseId)
     .maybeSingle();
 
   if (existing && !existing.revoked_at) {
-    return mapCertificate(existing as Record<string, unknown>);
+    return {
+      certificate: mapCertificate(existing as Record<string, unknown>),
+      newlyIssued: false,
+    };
   }
 
   const payload = {
@@ -119,9 +137,14 @@ export async function issueCertificateIfEligible(input: {
   const { data, error } = await client.database
     .from("certificates")
     .upsert(payload, { onConflict: "user_id,course_id" })
-    .select("id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at")
+    .select(
+      "id, user_id, course_id, certificate_number, verification_token, issued_at, revoked_at, metadata",
+    )
     .single();
 
   if (error || !data) return null;
-  return mapCertificate(data as Record<string, unknown>);
+  return {
+    certificate: mapCertificate(data as Record<string, unknown>),
+    newlyIssued: true,
+  };
 }

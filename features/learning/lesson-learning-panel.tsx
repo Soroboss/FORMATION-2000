@@ -175,12 +175,32 @@ export function LessonLearningPanel({
             </ul>
           ) : null}
           {submission ? (
-            <p className="mt-3 text-xs font-medium text-progress-700">
-              Statut : {submission.status}
-              {submission.submittedAt
-                ? ` · ${new Date(submission.submittedAt).toLocaleString("fr-FR")}`
-                : ""}
-            </p>
+            <div className="mt-3 space-y-2 rounded-lg bg-slate-50 p-3 text-sm">
+              <p className="text-xs font-medium text-progress-700">
+                Statut :{" "}
+                {submission.status === "approved"
+                  ? "Validé"
+                  : submission.status === "rejected"
+                    ? "Refusé"
+                    : submission.status === "needs_changes"
+                      ? "À corriger"
+                      : submission.status === "submitted"
+                        ? "Soumis — en attente de revue"
+                        : submission.status}
+                {submission.submittedAt
+                  ? ` · ${new Date(submission.submittedAt).toLocaleString("fr-FR")}`
+                  : ""}
+              </p>
+              {submission.score != null ? (
+                <p className="font-semibold text-slate-900">Note : {submission.score}/100</p>
+              ) : null}
+              {submission.reviewComment ? (
+                <p className="whitespace-pre-wrap text-slate-700">
+                  <span className="font-semibold">Commentaire : </span>
+                  {submission.reviewComment}
+                </p>
+              ) : null}
+            </div>
           ) : null}
           <form
             className="mt-4 space-y-3"

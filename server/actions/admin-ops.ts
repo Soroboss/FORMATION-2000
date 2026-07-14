@@ -275,10 +275,22 @@ export async function activateLearnerAccessAction(formData: FormData): Promise<v
       },
     });
 
+    const { createNotification } = await import("@/server/repositories/notifications");
+    await createNotification({
+      userId: parsed.data.userId,
+      type: "subscription_activated",
+      title: "Accès formations activé",
+      message: subscription.endsAt
+        ? `Votre accès premium est actif jusqu’au ${new Date(subscription.endsAt).toLocaleDateString("fr-FR")}.`
+        : "Votre accès premium est maintenant actif.",
+      actionUrl: "/app/catalogue",
+    });
+
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
     revalidatePath("/admin/membres");
     revalidatePath("/admin/abonnements");
     revalidatePath("/app");
+    revalidatePath("/app/notifications");
     redirect(`/admin/membres/${parsed.data.userId}?access=1`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
@@ -312,7 +324,31 @@ export async function reviewSubmissionAction(formData: FormData): Promise<void> 
       entityId: submission.id,
       newValues: { status: submission.status, score: submission.score },
     });
+
+    const statusLabel =
+      submission.status === "approved"
+        ? "validé"
+        : submission.status === "rejected"
+          ? "refusé"
+          : "à corriger";
+    const scorePart =
+      submission.score != null ? ` Note : ${submission.score}/100.` : "";
+    const commentPart = submission.reviewComment
+      ? ` Commentaire : ${submission.reviewComment}`
+      : "";
+
+    const { createNotification } = await import("@/server/repositories/notifications");
+    await createNotification({
+      userId: submission.userId,
+      type: "project_reviewed",
+      title: `Exercice ${statusLabel}`,
+      message: `Votre exercice a été ${statusLabel}.${scorePart}${commentPart}`,
+      actionUrl: "/app/projets",
+    });
+
     revalidatePath("/admin/projets");
+    revalidatePath("/app/projets");
+    revalidatePath("/app/notifications");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));
@@ -329,7 +365,7 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
     if (!parsed.success) {
       throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
     }
-    await updateSupportTicketStatus({
+    const result = await updateSupportTicketStatus({
       ticketId: parsed.data.ticketId,
       status: parsed.data.status,
       actorUserId: session.user.id,
@@ -341,7 +377,26 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
       entityId: parsed.data.ticketId,
       newValues: { status: parsed.data.status },
     });
+
+    if (result.userId) {
+      const statusLabel: Record<string, string> = {
+        open: "ouvert",
+        in_progress: "en cours",
+        resolved: "résolu",
+        closed: "fermé",
+      };
+      const { createNotification } = await import("@/server/repositories/notifications");
+      await createNotification({
+        userId: result.userId,
+        type: "support_update",
+        title: "Mise à jour support",
+        message: `Votre ticket est maintenant « ${statusLabel[parsed.data.status] ?? parsed.data.status} ».`,
+        actionUrl: "/app/support",
+      });
+    }
     revalidatePath("/admin/support");
+    revalidatePath("/app/support");
+    revalidatePath("/app/notifications");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));

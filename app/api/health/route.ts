@@ -14,7 +14,7 @@ export async function GET() {
   const payload = {
     ok,
     service: "learnoon-academy",
-    phase: 9,
+    phase: 10,
     timestamp: new Date().toISOString(),
     checks: {
       insforgePublicConfig: insforgeConfigured,

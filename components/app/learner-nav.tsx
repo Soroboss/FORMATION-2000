@@ -9,6 +9,7 @@ const nav = [
   { href: "/app/catalogue", label: "Catalogue" },
   { href: "/app/mes-formations", label: "Mes formations" },
   { href: "/app/progression", label: "Progression" },
+  { href: "/app/notifications", label: "Notifications" },
   { href: "/app/certificats", label: "Attestations" },
   { href: "/app/notes", label: "Notes" },
   { href: "/app/favoris", label: "Favoris" },

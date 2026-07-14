@@ -505,7 +505,9 @@ export async function getSubmissionForAssignment(
   const client = await clientForUser();
   const { data } = await client.database
     .from("assignment_submissions")
-    .select("id, assignment_id, status, content, submission_url, submitted_at")
+    .select(
+      "id, assignment_id, status, content, submission_url, submitted_at, score, review_comment, reviewed_at",
+    )
     .eq("user_id", userId)
     .eq("assignment_id", assignmentId)
     .order("created_at", { ascending: false })
@@ -513,7 +515,10 @@ export async function getSubmissionForAssignment(
     .maybeSingle();
 
   if (!data) return null;
-  const row = data as Record<string, unknown>;
+  return mapSubmission(data as Record<string, unknown>);
+}
+
+function mapSubmission(row: Record<string, unknown>): AssignmentSubmission {
   return {
     id: String(row.id),
     assignmentId: String(row.assignment_id),
@@ -521,7 +526,91 @@ export async function getSubmissionForAssignment(
     content: (row.content as string | null) ?? null,
     submissionUrl: (row.submission_url as string | null) ?? null,
     submittedAt: (row.submitted_at as string | null) ?? null,
+    score: row.score == null ? null : Number(row.score),
+    reviewComment: (row.review_comment as string | null) ?? null,
+    reviewedAt: (row.reviewed_at as string | null) ?? null,
   };
+}
+
+export async function listSubmissionsForUser(
+  userId: string,
+): Promise<
+  Array<
+    AssignmentSubmission & {
+      assignmentTitle: string;
+      lessonId: string | null;
+      courseId: string | null;
+      courseSlug: string | null;
+    }
+  >
+> {
+  const client = await clientForUser();
+  const { data } = await client.database
+    .from("assignment_submissions")
+    .select(
+      "id, assignment_id, status, content, submission_url, submitted_at, score, review_comment, reviewed_at",
+    )
+    .eq("user_id", userId)
+    .order("submitted_at", { ascending: false })
+    .limit(50);
+
+  if (!Array.isArray(data) || data.length === 0) return [];
+
+  const submissions = data.map((row) => mapSubmission(row as Record<string, unknown>));
+  const assignmentIds = [...new Set(submissions.map((s) => s.assignmentId))];
+
+  const { data: assignments } = await client.database
+    .from("assignments")
+    .select("id, title, lesson_id, course_id")
+    .in("id", assignmentIds);
+
+  const assignmentMap = new Map<
+    string,
+    { title: string; lessonId: string | null; courseId: string | null }
+  >();
+  if (Array.isArray(assignments)) {
+    for (const row of assignments) {
+      const r = row as Record<string, unknown>;
+      assignmentMap.set(String(r.id), {
+        title: String(r.title),
+        lessonId: (r.lesson_id as string | null) ?? null,
+        courseId: (r.course_id as string | null) ?? null,
+      });
+    }
+  }
+
+  const courseIds = [
+    ...new Set(
+      [...assignmentMap.values()]
+        .map((a) => a.courseId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const courseSlugById = new Map<string, string>();
+  if (courseIds.length > 0) {
+    const { data: courses } = await client.database
+      .from("courses")
+      .select("id, slug")
+      .in("id", courseIds);
+    if (Array.isArray(courses)) {
+      for (const row of courses) {
+        const r = row as Record<string, unknown>;
+        courseSlugById.set(String(r.id), String(r.slug));
+      }
+    }
+  }
+
+  return submissions.map((s) => {
+    const meta = assignmentMap.get(s.assignmentId);
+    const courseId = meta?.courseId ?? null;
+    return {
+      ...s,
+      assignmentTitle: meta?.title ?? "Exercice",
+      lessonId: meta?.lessonId ?? null,
+      courseId,
+      courseSlug: courseId ? courseSlugById.get(courseId) ?? null : null,
+    };
+  });
 }
 
 export async function submitAssignment(input: {
@@ -546,34 +635,22 @@ export async function submitAssignment(input: {
       .from("assignment_submissions")
       .update(payload)
       .eq("id", existing.id)
-      .select("id, assignment_id, status, content, submission_url, submitted_at")
+      .select(
+        "id, assignment_id, status, content, submission_url, submitted_at, score, review_comment, reviewed_at",
+      )
       .single();
     if (error || !data) throw new Error(error?.message ?? "Soumission impossible");
-    const row = data as Record<string, unknown>;
-    return {
-      id: String(row.id),
-      assignmentId: String(row.assignment_id),
-      status: String(row.status),
-      content: (row.content as string | null) ?? null,
-      submissionUrl: (row.submission_url as string | null) ?? null,
-      submittedAt: (row.submitted_at as string | null) ?? null,
-    };
+    return mapSubmission(data as Record<string, unknown>);
   }
 
   const { data, error } = await client.database
     .from("assignment_submissions")
     .insert([payload])
-    .select("id, assignment_id, status, content, submission_url, submitted_at")
+    .select(
+      "id, assignment_id, status, content, submission_url, submitted_at, score, review_comment, reviewed_at",
+    )
     .single();
 
   if (error || !data) throw new Error(error?.message ?? "Soumission impossible");
-  const row = data as Record<string, unknown>;
-  return {
-    id: String(row.id),
-    assignmentId: String(row.assignment_id),
-    status: String(row.status),
-    content: (row.content as string | null) ?? null,
-    submissionUrl: (row.submission_url as string | null) ?? null,
-    submittedAt: (row.submitted_at as string | null) ?? null,
-  };
+  return mapSubmission(data as Record<string, unknown>);
 }

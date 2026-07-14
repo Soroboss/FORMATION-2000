@@ -11,7 +11,7 @@ import {
 import { CategoryCard } from "@/components/learning/category-card";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { listCategories } from "@/server/repositories/catalog";
+import { getLessonAppPath, listCategories } from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
 import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
 
@@ -35,6 +35,10 @@ export default async function TableauDeBordPage() {
   ]);
 
   const hasCourses = enrollments.length > 0;
+  const resumeEnrollment = enrollments.find((e) => e.lastLessonId);
+  const resumePath = resumeEnrollment?.lastLessonId
+    ? await getLessonAppPath(resumeEnrollment.lastLessonId)
+    : null;
 
   return (
     <section className="space-y-6">
@@ -97,6 +101,14 @@ export default async function TableauDeBordPage() {
                 Payer via WhatsApp
               </Link>
             </>
+          ) : resumePath ? (
+            <Link
+              href={resumePath}
+              className="inline-flex h-11 items-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
+              Reprendre
+            </Link>
           ) : (
             <Link
               href="/app/catalogue"
@@ -210,12 +222,22 @@ export default async function TableauDeBordPage() {
             Vous suivez {enrollments.length} formation
             {enrollments.length > 1 ? "s" : ""}.
           </p>
-          <Link
-            href="/app/mes-formations"
-            className="mt-4 inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-          >
-            Ouvrir mes formations
-          </Link>
+          <div className="mt-4 flex flex-wrap gap-3">
+            {resumePath ? (
+              <Link
+                href={resumePath}
+                className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+              >
+                Reprendre la dernière leçon
+              </Link>
+            ) : null}
+            <Link
+              href="/app/mes-formations"
+              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+            >
+              Ouvrir mes formations
+            </Link>
+          </div>
         </div>
       )}
     </section>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CopyVerifyLinkButton } from "@/components/app/copy-verify-link-button";
 import { getSession } from "@/lib/auth/session";
 import { getAppUrl } from "@/lib/utils";
 import { getCourseById } from "@/server/repositories/catalog";
@@ -43,20 +44,26 @@ export default async function CertificatsPage() {
             certificates.map(async (cert) => {
               const course = await getCourseById(cert.courseId);
               const verifyUrl = `${appUrl}/attestation/${cert.verificationToken}`;
+              const title = cert.courseTitle ?? course?.title ?? "Formation";
               return (
                 <li key={cert.id} className="ui-card p-4">
-                  <p className="font-semibold text-ink">{course?.title ?? "Formation"}</p>
+                  <p className="font-semibold text-ink">{title}</p>
+                  {cert.memberName ? (
+                    <p className="mt-1 text-sm text-ink-muted">Pour {cert.memberName}</p>
+                  ) : null}
                   <p className="mt-1 font-mono text-xs text-ink-muted">{cert.certificateNumber}</p>
                   <p className="mt-1 text-xs text-ink-muted">
                     Délivrée le {new Date(cert.issuedAt).toLocaleDateString("fr-FR")}
                   </p>
-                  <Link
-                    href={`/attestation/${cert.verificationToken}`}
-                    className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline"
-                  >
-                    Voir / vérifier
-                  </Link>
-                  <p className="mt-1 break-all text-xs text-ink-muted">{verifyUrl}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <Link
+                      href={`/attestation/${cert.verificationToken}`}
+                      className="text-sm font-semibold text-brand-600 hover:underline"
+                    >
+                      Voir / vérifier
+                    </Link>
+                    <CopyVerifyLinkButton url={verifyUrl} />
+                  </div>
                 </li>
               );
             }),

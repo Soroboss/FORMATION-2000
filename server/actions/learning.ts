@@ -107,13 +107,27 @@ export async function completeLessonAction(formData: FormData): Promise<Learning
         .join(" ");
       const memberName =
         session.profile?.displayName || fromNames || session.user.email;
-      certificate = await issueCertificateIfEligible({
+      const issued = await issueCertificateIfEligible({
         userId: session.user.id,
         courseId: course.id,
         courseTitle: course.title,
         progressPercent: enrollment.progressPercent,
         memberName,
       });
+      certificate = issued?.certificate ?? null;
+      if (issued?.newlyIssued) {
+        const { createNotification } = await import(
+          "@/server/repositories/notifications"
+        );
+        await createNotification({
+          userId: session.user.id,
+          type: "certificate_issued",
+          title: "Attestation disponible",
+          message: `Félicitations ! Votre attestation pour « ${course.title} » est prête.`,
+          actionUrl: "/app/certificats",
+        });
+        revalidatePath("/app/notifications");
+      }
       revalidatePath("/app/certificats");
     }
 

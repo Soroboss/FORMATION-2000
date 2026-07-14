@@ -134,10 +134,22 @@ export async function approveManualPaymentAction(formData: FormData): Promise<vo
     },
   });
 
+  const { createNotification } = await import("@/server/repositories/notifications");
+  await createNotification({
+    userId: request.userId,
+    type: "payment_approved",
+    title: "Paiement validé",
+    message: subscription.endsAt
+      ? `Votre paiement Mobile Money a été confirmé. Accès premium actif jusqu’au ${new Date(subscription.endsAt).toLocaleDateString("fr-FR")}.`
+      : "Votre paiement Mobile Money a été confirmé. Accès premium activé.",
+    actionUrl: "/app/abonnement",
+  });
+
   revalidatePath("/admin/paiements-manuels");
   revalidatePath("/admin/paiements");
   revalidatePath("/admin/abonnements");
   revalidatePath("/app/abonnement");
+  revalidatePath("/app/notifications");
 }
 
 export async function rejectManualPaymentAction(formData: FormData): Promise<void> {
@@ -165,5 +177,17 @@ export async function rejectManualPaymentAction(formData: FormData): Promise<voi
     newValues: { reviewNote },
   });
 
+  const { createNotification } = await import("@/server/repositories/notifications");
+  await createNotification({
+    userId: request.userId,
+    type: "payment_rejected",
+    title: "Paiement non validé",
+    message: reviewNote
+      ? `Votre demande de paiement a été refusée. Motif : ${reviewNote}`
+      : "Votre demande de paiement a été refusée. Contactez le support ou renvoyez une preuve.",
+    actionUrl: "/paiement/manuel",
+  });
+
   revalidatePath("/admin/paiements-manuels");
+  revalidatePath("/app/notifications");
 }

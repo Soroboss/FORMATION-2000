@@ -73,4 +73,14 @@ export type AssignmentSubmission = {
   content: string | null;
   submissionUrl: string | null;
   submittedAt: string | null;
+  score: number | null;
+  reviewComment: string | null;
+  reviewedAt: string | null;
+};
+
+export type LearnerSubmissionRow = AssignmentSubmission & {
+  assignmentTitle: string;
+  lessonId: string | null;
+  courseId: string | null;
+  courseSlug: string | null;
 };

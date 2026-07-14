@@ -329,3 +329,34 @@ export function findAdjacentLessons(
     next: flat[index + 1] ?? null,
   };
 }
+
+/** Resolve /app/formations/{slug}/lecons/{lessonId} from a lesson id. */
+export async function getLessonAppPath(lessonId: string): Promise<string | null> {
+  const client = await getCatalogClient();
+  if (!client) return null;
+
+  const { data: lesson } = await client.database
+    .from("lessons")
+    .select("id, module_id")
+    .eq("id", lessonId)
+    .maybeSingle();
+  if (!lesson) return null;
+
+  const moduleId = String((lesson as { module_id: string }).module_id);
+  const { data: mod } = await client.database
+    .from("modules")
+    .select("id, course_id")
+    .eq("id", moduleId)
+    .maybeSingle();
+  if (!mod) return null;
+
+  const courseId = String((mod as { course_id: string }).course_id);
+  const { data: course } = await client.database
+    .from("courses")
+    .select("id, slug")
+    .eq("id", courseId)
+    .maybeSingle();
+  if (!course) return null;
+
+  return `/app/formations/${String((course as { slug: string }).slug)}/lecons/${lessonId}`;
+}

@@ -92,10 +92,16 @@ export async function updateSupportTicketStatus(input: {
   ticketId: string;
   status: "open" | "in_progress" | "resolved" | "closed";
   actorUserId: string;
-}): Promise<void> {
+}): Promise<{ userId: string | null }> {
   const token = await getAccessToken();
   const client = tryCreateInsForgeServerClient(token);
   if (!client) throw new Error("Client InsForge indisponible");
+
+  const { data: existing } = await client.database
+    .from("support_tickets")
+    .select("user_id")
+    .eq("id", input.ticketId)
+    .maybeSingle();
 
   const patch: Record<string, unknown> = {
     status: input.status,
@@ -111,4 +117,8 @@ export async function updateSupportTicketStatus(input: {
     .eq("id", input.ticketId);
 
   if (error) throw new Error(error.message);
+
+  const userId =
+    existing && existing.user_id != null ? String(existing.user_id) : null;
+  return { userId };
 }

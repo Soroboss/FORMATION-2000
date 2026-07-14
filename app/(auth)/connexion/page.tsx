@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { LoginForm } from "@/features/auth/login-form";
+import { getSession } from "@/lib/auth/session";
+import { safeInternalPath } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Connexion",
@@ -12,6 +15,12 @@ export default async function ConnexionPage({
   searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const nextPath = safeInternalPath(params.next);
+
+  const session = await getSession();
+  if (session) {
+    redirect(nextPath);
+  }
 
   return (
     <div className="space-y-6">

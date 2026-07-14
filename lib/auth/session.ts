@@ -29,17 +29,11 @@ export type AppSession = {
   roles: RoleKey[];
 };
 
-async function refreshAccessTokenIfNeeded(accessToken?: string): Promise<string | null> {
-  if (accessToken) return accessToken;
-
-  const refreshToken = await getRefreshToken();
-  if (!refreshToken) return null;
-
+async function refreshSession(refreshToken: string): Promise<string | null> {
   const client = createInsForgeServerClient();
   const { data, error } = await client.auth.refreshSession({ refreshToken });
 
   if (error || !data?.accessToken) {
-    await clearAuthCookies();
     return null;
   }
 
@@ -52,85 +46,114 @@ async function refreshAccessTokenIfNeeded(accessToken?: string): Promise<string 
   return data.accessToken;
 }
 
+async function loadSessionForToken(accessToken: string): Promise<AppSession | null> {
+  const client = createInsForgeServerClient(accessToken);
+  const { data, error } = await client.auth.getCurrentUser();
+
+  if (error || !data?.user) {
+    return null;
+  }
+
+  const user: AuthUser = {
+    id: data.user.id,
+    email: data.user.email,
+    name:
+      (typeof data.user.profile === "object" &&
+      data.user.profile &&
+      "name" in data.user.profile &&
+      typeof data.user.profile.name === "string"
+        ? data.user.profile.name
+        : null) ?? null,
+  };
+
+  const { data: profileRows } = await client.database
+    .from("profiles")
+    .select("id, first_name, last_name, display_name, email, phone, status")
+    .eq("id", user.id)
+    .limit(1);
+
+  const profileRow = Array.isArray(profileRows) ? profileRows[0] : null;
+
+  const profile: SessionProfile | null = profileRow
+    ? {
+        id: profileRow.id as string,
+        firstName: (profileRow.first_name as string | null) ?? null,
+        lastName: (profileRow.last_name as string | null) ?? null,
+        displayName: (profileRow.display_name as string | null) ?? null,
+        email: (profileRow.email as string | null) ?? null,
+        phone: (profileRow.phone as string | null) ?? null,
+        status: (profileRow.status as string) ?? "active",
+      }
+    : null;
+
+  const roles: RoleKey[] = [];
+  const { data: userRoleRows } = await client.database
+    .from("user_roles")
+    .select("role_id")
+    .eq("user_id", user.id);
+
+  const roleIds = Array.isArray(userRoleRows)
+    ? userRoleRows
+        .map((row) => row.role_id as string | undefined)
+        .filter((id): id is string => Boolean(id))
+    : [];
+
+  if (roleIds.length > 0) {
+    const { data: roleRows } = await client.database
+      .from("roles")
+      .select("key")
+      .in("id", roleIds);
+
+    if (Array.isArray(roleRows)) {
+      for (const row of roleRows) {
+        const key = row.key as string | undefined;
+        if (key) roles.push(key as RoleKey);
+      }
+    }
+  }
+
+  if (roles.length === 0) {
+    roles.push("learner");
+  }
+
+  return { user, profile, roles };
+}
+
 export async function getSession(): Promise<AppSession | null> {
   try {
-    const existingAccess = await getAccessToken();
-    const accessToken = await refreshAccessTokenIfNeeded(existingAccess);
+    let accessToken = await getAccessToken();
+    const refreshToken = await getRefreshToken();
 
-    if (!accessToken) return null;
+    if (!accessToken && refreshToken) {
+      accessToken = (await refreshSession(refreshToken)) ?? undefined;
+    }
 
-    const client = createInsForgeServerClient(accessToken);
-    const { data, error } = await client.auth.getCurrentUser();
+    if (!accessToken) {
+      return null;
+    }
 
-    if (error || !data?.user) {
+    let session = await loadSessionForToken(accessToken);
+
+    // Access token expiré / invalide → tenter un refresh une fois
+    if (!session && refreshToken) {
+      const refreshed = await refreshSession(refreshToken);
+      if (refreshed) {
+        session = await loadSessionForToken(refreshed);
+      }
+    }
+
+    if (!session) {
       await clearAuthCookies();
       return null;
     }
 
-    const user: AuthUser = {
-      id: data.user.id,
-      email: data.user.email,
-      name:
-        (typeof data.user.profile === "object" &&
-        data.user.profile &&
-        "name" in data.user.profile &&
-        typeof data.user.profile.name === "string"
-          ? data.user.profile.name
-          : null) ?? null,
-    };
-
-    const { data: profileRows } = await client.database
-      .from("profiles")
-      .select("id, first_name, last_name, display_name, email, phone, status")
-      .eq("id", user.id)
-      .limit(1);
-
-    const profileRow = Array.isArray(profileRows) ? profileRows[0] : null;
-
-    const profile: SessionProfile | null = profileRow
-      ? {
-          id: profileRow.id as string,
-          firstName: (profileRow.first_name as string | null) ?? null,
-          lastName: (profileRow.last_name as string | null) ?? null,
-          displayName: (profileRow.display_name as string | null) ?? null,
-          email: (profileRow.email as string | null) ?? null,
-          phone: (profileRow.phone as string | null) ?? null,
-          status: (profileRow.status as string) ?? "active",
-        }
-      : null;
-
-    const roles: RoleKey[] = [];
-    const { data: userRoleRows } = await client.database
-      .from("user_roles")
-      .select("role_id")
-      .eq("user_id", user.id);
-
-    const roleIds = Array.isArray(userRoleRows)
-      ? userRoleRows
-          .map((row) => row.role_id as string | undefined)
-          .filter((id): id is string => Boolean(id))
-      : [];
-
-    if (roleIds.length > 0) {
-      const { data: roleRows } = await client.database
-        .from("roles")
-        .select("key")
-        .in("id", roleIds);
-
-      if (Array.isArray(roleRows)) {
-        for (const row of roleRows) {
-          const key = row.key as string | undefined;
-          if (key) roles.push(key as RoleKey);
-        }
-      }
-    }
-
-    if (roles.length === 0) {
-      roles.push("learner");
-    }
-
-    return { user, profile, roles };
+    return session;
   } catch {
+    try {
+      await clearAuthCookies();
+    } catch {
+      // ignore
+    }
     return null;
   }
 }

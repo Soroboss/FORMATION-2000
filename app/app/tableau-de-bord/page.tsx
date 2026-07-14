@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   BookOpen,
   Compass,
@@ -16,7 +17,9 @@ import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
 
 export default async function TableauDeBordPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const name =
     session.profile?.firstName ??

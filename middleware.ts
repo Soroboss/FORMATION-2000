@@ -81,15 +81,9 @@ export function middleware(request: NextRequest) {
     return withRequestId(NextResponse.redirect(loginUrl), requestId);
   }
 
-  if (
-    (pathname === "/connexion" || pathname === "/inscription") &&
-    hasSessionCookies(request)
-  ) {
-    return withRequestId(
-      NextResponse.redirect(new URL("/app/tableau-de-bord", request.url)),
-      requestId,
-    );
-  }
+  // Ne pas rediriger /connexion|/inscription juste parce que des cookies existent :
+  // des cookies expirés/invalides provoqueraient une boucle avec le layout /app.
+  // La page connexion vérifie la session serveur et redirige si elle est valide.
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);

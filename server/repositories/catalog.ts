@@ -55,11 +55,26 @@ function mapCategory(row: Record<string, unknown>): Category {
   };
 }
 
+const COURSE_LIST_SELECT =
+  "id, title, slug, short_description, description, thumbnail_url, level, language, estimated_duration_minutes, access_type, is_featured, category_id, learning_outcomes, required_tools";
+
+const COURSE_DETAIL_SELECT =
+  "id, title, slug, short_description, description, thumbnail_url, level, language, estimated_duration_minutes, learning_outcomes, prerequisites, required_tools, final_project_description, access_type, is_featured, category_id";
+
 function mapCourseListItem(
   row: Record<string, unknown>,
   lessonCount = 0,
+  categoryById?: Map<string, Category>,
 ): CourseListItem {
-  const categoryRow = normalizeCategoryJoin(row.categories);
+  const categoryId = (row.category_id as string | null) ?? null;
+  const fromJoin = normalizeCategoryJoin(row.categories);
+  const fromMap = categoryId && categoryById ? categoryById.get(categoryId) : undefined;
+  const category = fromJoin
+    ? fromJoin
+    : fromMap
+      ? { id: fromMap.id, name: fromMap.name, slug: fromMap.slug }
+      : null;
+
   return {
     id: String(row.id),
     title: String(row.title),
@@ -71,7 +86,7 @@ function mapCourseListItem(
     estimatedDurationMinutes: Number(row.estimated_duration_minutes ?? 0),
     accessType: (row.access_type as CourseAccessType) ?? "subscription",
     isFeatured: Boolean(row.is_featured),
-    category: categoryRow,
+    category,
     lessonCount,
   };
 }
@@ -192,11 +207,11 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
 
   const wantsSearch = Boolean(filters.q?.trim());
 
+  // Do NOT embed categories(...) here: PostgREST sees two relationships
+  // (courses.category_id + course_categories M2M) and the query fails → empty list.
   let query = client.database
     .from("courses")
-    .select(
-      "id, title, slug, short_description, description, thumbnail_url, level, language, estimated_duration_minutes, access_type, is_featured, category_id, learning_outcomes, required_tools, categories(id, name, slug)",
-    )
+    .select(COURSE_LIST_SELECT)
     .eq("status", "published")
     .order("published_at", { ascending: false });
 
@@ -213,7 +228,20 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   }
 
   const { data, error } = await query;
-  if (error || !Array.isArray(data)) return [];
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "listCourses_failed",
+        error: error.message,
+      }),
+    );
+    return [];
+  }
+  if (!Array.isArray(data)) return [];
+
+  const categories = await listCategories();
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
 
   let rows = data as unknown as Record<string, unknown>[];
 
@@ -221,14 +249,15 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
     const q = filters.q.trim();
     rows = rows
       .filter((row) => {
-        const categoryRow = normalizeCategoryJoin(row.categories);
+        const categoryId = (row.category_id as string | null) ?? null;
+        const cat = categoryId ? categoryById.get(categoryId) : undefined;
         return courseMatchesSearchQuery(
           {
             title: String(row.title ?? ""),
             shortDescription: (row.short_description as string | null) ?? null,
             description: (row.description as string | null) ?? null,
             slug: (row.slug as string | null) ?? null,
-            categoryName: categoryRow?.name ?? null,
+            categoryName: cat?.name ?? null,
             learningOutcomes: Array.isArray(row.learning_outcomes)
               ? (row.learning_outcomes as string[])
               : [],
@@ -240,8 +269,8 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
         );
       })
       .sort((a, b) => {
-        const catA = normalizeCategoryJoin(a.categories);
-        const catB = normalizeCategoryJoin(b.categories);
+        const catA = categoryById.get(String(a.category_id ?? ""));
+        const catB = categoryById.get(String(b.category_id ?? ""));
         const scoreA = scoreCourseSearchMatch(
           {
             title: String(a.title ?? ""),
@@ -267,7 +296,7 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   const items: CourseListItem[] = [];
   for (const row of rows) {
     const lessonCount = await countLessonsForCourse(client, String(row.id));
-    items.push(mapCourseListItem(row, lessonCount));
+    items.push(mapCourseListItem(row, lessonCount, categoryById));
   }
   return items;
 }
@@ -286,9 +315,7 @@ async function getCourseDetail(filter: { slug?: string; id?: string }): Promise<
 
   let query = client.database
     .from("courses")
-    .select(
-      "id, title, slug, short_description, description, thumbnail_url, level, language, estimated_duration_minutes, learning_outcomes, prerequisites, required_tools, final_project_description, access_type, is_featured, categories(id, name, slug)",
-    )
+    .select(COURSE_DETAIL_SELECT)
     .eq("status", "published");
 
   if (filter.slug) query = query.eq("slug", filter.slug);
@@ -296,8 +323,22 @@ async function getCourseDetail(filter: { slug?: string; id?: string }): Promise<
 
   const { data: course, error } = await query.maybeSingle();
 
-  if (error || !course) return null;
+  if (error) {
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "getCourseDetail_failed",
+        error: error.message,
+        filter,
+      }),
+    );
+    return null;
+  }
+  if (!course) return null;
   const courseRow = course as Record<string, unknown>;
+
+  const categories = await listCategories();
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
 
   const { data: modules } = await client.database
     .from("modules")
@@ -335,7 +376,7 @@ async function getCourseDetail(filter: { slug?: string; id?: string }): Promise<
   });
 
   const lessonCount = modulesWithLessons.reduce((acc, m) => acc + m.lessons.length, 0);
-  const base = mapCourseListItem(courseRow, lessonCount);
+  const base = mapCourseListItem(courseRow, lessonCount, categoryById);
 
   return {
     ...base,

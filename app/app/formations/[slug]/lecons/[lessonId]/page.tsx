@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LessonInstructionsPanel } from "@/components/learning/lesson-instructions-panel";
-import { YouTubeLessonPlayer } from "@/components/learning/youtube-lesson-player";
+import { LessonVideoStudio } from "@/components/learning/lesson-video-studio";
 import { LessonLearningPanel } from "@/features/learning/lesson-learning-panel";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent, canWatchLesson } from "@/lib/subscriptions/access";
@@ -85,12 +85,15 @@ export default async function LessonPage({
       </div>
 
       {canWatch && lesson.youtube ? (
-        <YouTubeLessonPlayer
+        <LessonVideoStudio
           videoId={lesson.youtube.youtubeVideoId}
           lessonId={lesson.id}
           title={lesson.title}
           channelName={lesson.youtube.channelName}
           channelUrl={lesson.youtube.channelUrl}
+          courseSlug={course.slug}
+          initialNote={noteContent}
+          showNotes={Boolean(session)}
         />
       ) : (
         <div className="ui-card border-dashed border-action-200 bg-action-50/50 p-6 text-sm text-ink">
@@ -123,7 +126,7 @@ export default async function LessonPage({
       )}
 
       <div className="ui-card p-5 sm:p-6">
-        <h2 className="font-display font-semibold text-ink">Sous la vidéo</h2>
+        <h2 className="font-display font-semibold text-ink">Continuer la leçon</h2>
         <div className="mt-4">
           <LessonInstructionsPanel instructions={lesson.instructions} redacted={!canWatch} />
         </div>
@@ -140,6 +143,7 @@ export default async function LessonPage({
               assignment={assignment}
               submission={submission}
               quiz={quiz}
+              hideNotes
             />
           </div>
         ) : null}

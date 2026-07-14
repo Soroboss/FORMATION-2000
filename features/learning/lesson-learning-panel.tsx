@@ -25,6 +25,7 @@ export function LessonLearningPanel({
   assignment,
   submission,
   quiz,
+  hideNotes = false,
 }: {
   courseSlug: string;
   courseId: string;
@@ -36,6 +37,8 @@ export function LessonLearningPanel({
   assignment: AssignmentSummary | null;
   submission: AssignmentSubmission | null;
   quiz: QuizPublic | null;
+  /** When true, notes live next to the video studio instead. */
+  hideNotes?: boolean;
 }) {
   const [message, setMessage] = useState<LearningActionResult | null>(null);
   const [note, setNote] = useState(initialNote);
@@ -137,31 +140,33 @@ export function LessonLearningPanel({
         </Button>
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4">
-        <h3 className="font-semibold text-slate-900">Notes personnelles</h3>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={5}
-          className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm"
-          placeholder="Vos notes privées pour cette leçon…"
-        />
-        <Button
-          type="button"
-          className="mt-3"
-          variant="secondary"
-          disabled={pending}
-          onClick={() => {
-            const fd = new FormData();
-            fd.set("courseSlug", courseSlug);
-            fd.set("lessonId", lessonId);
-            fd.set("content", note);
-            run("note", saveNoteAction, fd);
-          }}
-        >
-          Enregistrer la note
-        </Button>
-      </section>
+      {!hideNotes ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4">
+          <h3 className="font-semibold text-slate-900">Notes personnelles</h3>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={5}
+            className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm"
+            placeholder="Vos notes privées pour cette leçon…"
+          />
+          <Button
+            type="button"
+            className="mt-3"
+            variant="secondary"
+            disabled={pending}
+            onClick={() => {
+              const fd = new FormData();
+              fd.set("courseSlug", courseSlug);
+              fd.set("lessonId", lessonId);
+              fd.set("content", note);
+              run("note", saveNoteAction, fd);
+            }}
+          >
+            Enregistrer la note
+          </Button>
+        </section>
+      ) : null}
 
       {assignment ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-4">

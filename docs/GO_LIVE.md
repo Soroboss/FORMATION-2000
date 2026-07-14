@@ -51,7 +51,7 @@ curl -s https://votre-domaine.ci/api/health | jq
 npm run check   # en CI
 ```
 
-- [ ] Health `ok: true`, `phase: 8`
+- [ ] Health `ok: true`, `phase: 9`
 - [ ] Parcours smoke (`SMOKE_TESTS.md`)
 - [ ] Backup initial (`BACKUP.md`)
 

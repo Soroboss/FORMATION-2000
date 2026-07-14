@@ -13,6 +13,7 @@ const nav = [
   { href: "/admin/paiements", label: "Paiements" },
   { href: "/admin/paiements-manuels", label: "Paiements WhatsApp" },
   { href: "/admin/projets", label: "Exercices" },
+  { href: "/admin/support", label: "Support" },
   { href: "/admin/journaux", label: "Audit" },
   { href: "/admin/parametres", label: "Paramètres" },
 ];

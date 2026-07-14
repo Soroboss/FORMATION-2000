@@ -133,7 +133,7 @@ export default async function AdminMembresPage({
                       href={`/admin/membres/${m.id}`}
                       className="inline-flex h-9 items-center rounded-brand bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-700"
                     >
-                      Gérer
+                      Gérer / Accès
                     </Link>
                   </td>
                 </tr>

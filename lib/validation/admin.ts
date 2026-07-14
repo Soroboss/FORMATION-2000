@@ -116,6 +116,18 @@ export const extendSubscriptionSchema = z.object({
   days: z.coerce.number().int().min(1).max(365).default(30),
 });
 
+/** Activation / prolongation d’accès premium pour un apprenant (sans paiement). */
+export const activateLearnerAccessSchema = z.object({
+  userId: z.string().uuid(),
+  days: z.coerce.number().int().min(1).max(365).default(30),
+  note: z.string().trim().max(500).optional().or(z.literal("")),
+});
+
+export const updateSupportTicketSchema = z.object({
+  ticketId: z.string().uuid(),
+  status: z.enum(["open", "in_progress", "resolved", "closed"]),
+});
+
 export const reviewSubmissionSchema = z.object({
   submissionId: z.string().uuid(),
   status: z.enum(["approved", "rejected", "needs_changes"]),

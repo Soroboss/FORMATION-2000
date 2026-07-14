@@ -1,15 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireAdminSession } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/write";
 import {
   assignRoleSchema,
+  activateLearnerAccessSchema,
   extendSubscriptionSchema,
   inviteCollaboratorSchema,
   memberStatusSchema,
   reviewSubmissionSchema,
   settingUpdateSchema,
+  updateSupportTicketSchema,
 } from "@/lib/validation/admin";
 import {
   assignRole,
@@ -21,6 +25,11 @@ import {
 import { extendSubscription } from "@/server/repositories/admin-payments";
 import { reviewSubmission } from "@/server/repositories/admin-learning";
 import { updateSetting } from "@/server/repositories/admin-settings";
+import {
+  activateOrExtendSubscription,
+  getPlanBySlug,
+} from "@/server/repositories/payments";
+import { updateSupportTicketStatus } from "@/server/repositories/support";
 import {
   assertCanAssignRole,
   canManageMemberRoles,
@@ -224,6 +233,59 @@ export async function extendSubscriptionAction(formData: FormData): Promise<void
   }
 }
 
+/**
+ * Active ou prolonge l’accès premium d’un apprenant depuis sa fiche admin
+ * (paiement reçu hors plateforme, faveur, test, etc.).
+ */
+export async function activateLearnerAccessAction(formData: FormData): Promise<void> {
+  try {
+    const session = await requireAdminSession();
+    const parsed = activateLearnerAccessSchema.safeParse({
+      userId: formString(formData, "userId"),
+      days: formString(formData, "days") || 30,
+      note: formString(formData, "note"),
+    });
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+    }
+
+    const plan = await getPlanBySlug("acces-mensuel");
+    if (!plan) {
+      throw new Error("Plan « acces-mensuel » introuvable. Vérifiez la migration des plans.");
+    }
+
+    const subscription = await activateOrExtendSubscription({
+      userId: parsed.data.userId,
+      planId: plan.id,
+      durationDays: parsed.data.days,
+      confirmedAt: new Date(),
+      source: `admin_grant:${session.user.id}`,
+    });
+
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "member.access.activate",
+      entityType: "subscription",
+      entityId: subscription.id,
+      newValues: {
+        userId: parsed.data.userId,
+        days: parsed.data.days,
+        endsAt: subscription.endsAt,
+        note: parsed.data.note || null,
+      },
+    });
+
+    revalidatePath(`/admin/membres/${parsed.data.userId}`);
+    revalidatePath("/admin/membres");
+    revalidatePath("/admin/abonnements");
+    revalidatePath("/app");
+    redirect(`/admin/membres/${parsed.data.userId}?access=1`);
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
 export async function reviewSubmissionAction(formData: FormData): Promise<void> {
   try {
     const session = await requireAdminSession();
@@ -251,6 +313,35 @@ export async function reviewSubmissionAction(formData: FormData): Promise<void> 
       newValues: { status: submission.status, score: submission.score },
     });
     revalidatePath("/admin/projets");
+    return;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+export async function updateSupportTicketAction(formData: FormData): Promise<void> {
+  try {
+    const session = await requireAdminSession();
+    const parsed = updateSupportTicketSchema.safeParse({
+      ticketId: formString(formData, "ticketId"),
+      status: formString(formData, "status"),
+    });
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+    }
+    await updateSupportTicketStatus({
+      ticketId: parsed.data.ticketId,
+      status: parsed.data.status,
+      actorUserId: session.user.id,
+    });
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "support.ticket.status",
+      entityType: "support_ticket",
+      entityId: parsed.data.ticketId,
+      newValues: { status: parsed.data.status },
+    });
+    revalidatePath("/admin/support");
     return;
   } catch (error) {
     throw error instanceof Error ? error : new Error(String(error));

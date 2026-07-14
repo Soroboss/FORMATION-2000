@@ -37,6 +37,27 @@ export const forgotPasswordSchema = z.object({
   email: z.email("Adresse e-mail invalide."),
 });
 
+export const updateProfileSchema = z.object({
+  firstName: z
+    .string()
+    .trim()
+    .min(1, "Le prénom est requis.")
+    .max(80, "Prénom trop long."),
+  lastName: z
+    .string()
+    .trim()
+    .min(1, "Le nom est requis.")
+    .max(80, "Nom trop long."),
+  displayName: z.string().trim().max(120, "Nom affiché trop long."),
+  whatsapp: z
+    .string()
+    .trim()
+    .min(8, "Le numéro WhatsApp est requis.")
+    .max(20, "Numéro WhatsApp trop long.")
+    .regex(/^\+?[\d\s.-]{8,20}$/, "Numéro WhatsApp invalide.")
+    .transform((value) => value.replace(/[^\d+]/g, "")),
+});
+
 export const resetPasswordSchema = z
   .object({
     password: z

@@ -20,6 +20,6 @@ Relancer après toute mise à jour du mark source (`logo-mark.png`).
 
 ## Hors scope
 
-- PSP Mobile Money réel → Phase 9 (`docs/PAYMENTS_PRODUCTION.md`)
-- Édition profil / notifications
+- Suite ops / profil / support → Phase 9 (`docs/PHASE9.md`)
+- PSP Mobile Money réel → clés PSP (`docs/PAYMENTS_PRODUCTION.md`)
 - Enrichissement massif du catalogue

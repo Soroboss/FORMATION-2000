@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   categoryUpsertSchema,
   courseUpsertSchema,
+  activateLearnerAccessSchema,
   extendSubscriptionSchema,
   lessonUpsertSchema,
+  updateSupportTicketSchema,
 } from "@/lib/validation/admin";
 import { slugify } from "@/lib/admin/slug";
 import { extractYouTubeVideoId } from "@/lib/youtube/url";
@@ -49,6 +51,23 @@ describe("admin validation", () => {
     const parsed = extendSubscriptionSchema.safeParse({
       subscriptionId: "11111111-1111-4111-8111-111111111111",
       days: 30,
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("active l'accès d'un apprenant", () => {
+    const parsed = activateLearnerAccessSchema.safeParse({
+      userId: "11111111-1111-4111-8111-111111111111",
+      days: 30,
+      note: "Paiement Orange reçu",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("valide un changement de statut support", () => {
+    const parsed = updateSupportTicketSchema.safeParse({
+      ticketId: "11111111-1111-4111-8111-111111111111",
+      status: "in_progress",
     });
     expect(parsed.success).toBe(true);
   });

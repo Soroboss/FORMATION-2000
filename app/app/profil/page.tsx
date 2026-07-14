@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ProfileEditForm } from "@/components/app/profile-edit-form";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
@@ -29,37 +30,32 @@ export default async function ProfilPage() {
       <div className="ui-card p-5 sm:p-6">
         <h1 className="font-display text-2xl font-bold text-ink">Profil</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Informations de votre compte Learnoon Academy.
+          Mettez à jour vos informations personnelles. L&apos;e-mail et l&apos;abonnement se
+          gèrent ailleurs.
         </p>
+      </div>
+
+      <div className="ui-card p-5 sm:p-6">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+          Modifier le profil
+        </h2>
+        <div className="mt-4">
+          <ProfileEditForm
+            firstName={firstName}
+            lastName={lastName}
+            displayName={displayName ?? ""}
+            phone={phone}
+          />
+        </div>
       </div>
 
       <div className="ui-card p-5 sm:p-6">
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Nom affiché
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">{displayName}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Prénom / Nom
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">
-              {firstName} {lastName}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
               E-mail
             </dt>
             <dd className="mt-1 text-sm font-medium text-ink">{email}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              WhatsApp
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">{phone}</dd>
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Rôles</dt>

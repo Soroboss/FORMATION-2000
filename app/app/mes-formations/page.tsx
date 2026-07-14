@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Compass, CreditCard } from "lucide-react";
 import { CategoryCard } from "@/components/learning/category-card";
 import { getSession } from "@/lib/auth/session";
@@ -8,7 +9,9 @@ import { listEnrollmentsForUser } from "@/server/repositories/learning";
 
 export default async function MesFormationsPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const [enrollments, hasPremium, categories] = await Promise.all([
     listEnrollmentsForUser(session.user.id),

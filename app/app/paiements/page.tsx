@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { listPaymentsForUser } from "@/server/repositories/payments";
 
 export default async function PaiementsPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const payments = await listPaymentsForUser(session.user.id);
 

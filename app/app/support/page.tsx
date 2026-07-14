@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createSupportTicketAction } from "@/server/actions/support";
 import { getSession } from "@/lib/auth/session";
 import { listSupportTicketsForUser } from "@/server/repositories/support";
@@ -6,7 +7,9 @@ import { Button } from "@/components/ui/button";
 
 export default async function SupportPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
   const tickets = await listSupportTicketsForUser(session.user.id);
 
   return (

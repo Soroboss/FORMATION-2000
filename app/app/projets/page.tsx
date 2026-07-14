@@ -1,9 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 
 export default async function ProjetsPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   return (
     <section className="space-y-6">

@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { listNotesForUser } from "@/server/repositories/learning";
 
 export default async function NotesPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
   const notes = await listNotesForUser(session.user.id);
 
   return (

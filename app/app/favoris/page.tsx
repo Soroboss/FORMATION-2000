@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getCourseById } from "@/server/repositories/catalog";
 import { listFavoritesForUser } from "@/server/repositories/learning";
 
 export default async function FavorisPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
   const favorites = await listFavoritesForUser(session.user.id);
 
   return (

@@ -1,69 +1,89 @@
+import Link from "next/link";
 import {
   approveManualPaymentAction,
   rejectManualPaymentAction,
 } from "@/server/actions/manual-payments";
 import { listPendingManualPaymentRequests } from "@/server/repositories/manual-payments";
 import { Button } from "@/components/ui/button";
+import { AdminEmptyState, AdminPageHeader } from "@/components/admin/ui";
 
 export default async function AdminPaiementsManuelsPage() {
   const pending = await listPendingManualPaymentRequests();
 
   return (
     <section className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-slate-900">
-          Paiements manuels
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Vérifiez la capture WhatsApp, puis approuvez pour activer 30 jours d&apos;accès.
-        </p>
-      </div>
+      <AdminPageHeader
+        title="Paiements WhatsApp"
+        description="Vérifiez la capture, puis approuvez pour activer 30 jours d’accès."
+      />
 
       {pending.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
-          Aucune demande en attente.
-        </p>
+        <AdminEmptyState
+          title="Aucune demande en attente"
+          description="Les demandes Mobile Money + WhatsApp arriveront ici."
+          actionHref="/admin/paiements"
+          actionLabel="Voir l’historique"
+        />
       ) : (
         <ul className="space-y-4">
           {pending.map((req) => (
-            <li key={req.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-slate-900">
+            <li key={req.id} className="ui-card p-5 sm:p-6">
+              <p className="font-display text-lg font-semibold text-ink">
                 {req.amount.toLocaleString("fr-FR")} {req.currency} · {req.network ?? "—"}
               </p>
-              <dl className="mt-2 grid gap-1 text-xs text-slate-600 sm:grid-cols-2">
+              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="uppercase tracking-wide text-slate-400">User</dt>
-                  <dd className="font-mono">{req.userId}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Membre
+                  </dt>
+                  <dd>
+                    <Link
+                      href={`/admin/membres/${req.userId}`}
+                      className="font-semibold text-brand-700 hover:underline"
+                    >
+                      Ouvrir le profil
+                    </Link>
+                  </dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-slate-400">Téléphone</dt>
-                  <dd>{req.payerPhone}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Téléphone
+                  </dt>
+                  <dd className="text-ink">{req.payerPhone}</dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-slate-400">Nom</dt>
-                  <dd>{req.payerName ?? "—"}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Nom
+                  </dt>
+                  <dd className="text-ink">{req.payerName ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-slate-400">Réf.</dt>
-                  <dd>{req.transactionRef ?? "—"}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Réf.
+                  </dt>
+                  <dd className="text-ink">{req.transactionRef ?? "—"}</dd>
                 </div>
                 <div className="sm:col-span-2">
-                  <dt className="uppercase tracking-wide text-slate-400">Note</dt>
-                  <dd>{req.note ?? "—"}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Note
+                  </dt>
+                  <dd className="text-ink">{req.note ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="uppercase tracking-wide text-slate-400">Reçu le</dt>
-                  <dd>{new Date(req.createdAt).toLocaleString("fr-FR")}</dd>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
+                    Reçu le
+                  </dt>
+                  <dd className="text-ink">{new Date(req.createdAt).toLocaleString("fr-FR")}</dd>
                 </div>
               </dl>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <form action={approveManualPaymentAction} className="space-y-2">
                   <input type="hidden" name="id" value={req.id} />
                   <input
                     name="reviewNote"
                     placeholder="Note d'approbation (optionnel)"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-soft border border-canvas-border px-3 py-2 text-sm"
                   />
                   <Button type="submit" className="w-full" variant="secondary">
                     Approuver & activer l&apos;accès
@@ -74,7 +94,7 @@ export default async function AdminPaiementsManuelsPage() {
                   <input
                     name="reviewNote"
                     placeholder="Motif du refus"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-soft border border-canvas-border px-3 py-2 text-sm"
                   />
                   <Button type="submit" className="w-full" variant="outline">
                     Refuser

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Compass } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
 import { getCourseById } from "@/server/repositories/catalog";
@@ -6,7 +7,9 @@ import { listEnrollmentsForUser } from "@/server/repositories/learning";
 
 export default async function ProgressionPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const enrollments = await listEnrollmentsForUser(session.user.id);
   const global =

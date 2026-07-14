@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getAppUrl } from "@/lib/utils";
 import { getCourseById } from "@/server/repositories/catalog";
@@ -6,7 +7,9 @@ import { listCertificatesForUser } from "@/server/repositories/certificates";
 
 export default async function CertificatsPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const certificates = await listCertificatesForUser(session.user.id);
   const appUrl = getAppUrl();

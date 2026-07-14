@@ -1,11 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
 
 export default async function ProfilPage() {
   const session = await getSession();
-  if (!session) return null;
+  if (!session) {
+    redirect("/connexion?next=/app/tableau-de-bord");
+  }
 
   const [hasPremium, subscription] = await Promise.all([
     canAccessPremiumContent(session.user.id),

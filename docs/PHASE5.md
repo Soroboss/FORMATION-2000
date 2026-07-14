@@ -17,7 +17,9 @@
 
 Les pages `/admin` exigent les rôles `support`, `admin` ou `super_admin`.
 
-Compte propriétaire actuel : `bigreussite@gmail.com` a le rôle **`super_admin`**.
+Compte étudiant : `bigreussite@gmail.com` → rôle **`learner`** uniquement.
+
+Compte administration : `soroboss.bossimpact@gmail.com` → rôle **`super_admin`**.
 
 Entrée UI :
 - Bouton **Administration** dans l’espace apprenant (header + dashboard) si rôle admin

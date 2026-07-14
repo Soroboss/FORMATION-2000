@@ -39,6 +39,10 @@ yarn-error.log*
 # Local database dumps (may contain PII)
 /backups/
 
+# Temporary local credentials (never commit)
+.admin-credentials.tmp.json
+*.credentials.tmp.json
+
 # vercel
 .vercel
 

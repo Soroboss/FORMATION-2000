@@ -27,6 +27,7 @@ export default async function AdminCategoriesPage({
       >
         <input type="hidden" name="returnTo" value="/admin/categories" />
         <h2 className="font-display font-semibold text-ink sm:col-span-2">Ajouter une catégorie</h2>
+        <ImageUploadField label="Photo / bannière de la catégorie" />
         <input
           name="name"
           placeholder="Nom"
@@ -49,7 +50,6 @@ export default async function AdminCategoriesPage({
           defaultValue={categories.length + 1}
           className="rounded-soft border border-canvas-border px-3 py-2 text-sm text-ink"
         />
-        <ImageUploadField label="Image de couverture (bannière)" />
         <textarea
           name="description"
           placeholder="Description"
@@ -87,7 +87,7 @@ export default async function AdminCategoriesPage({
                   />
                 </div>
                 <ImageUploadField
-                  label="Image de couverture (bannière)"
+                  label="Photo / bannière de la catégorie"
                   currentUrl={cat.imageUrl}
                 />
                 <input

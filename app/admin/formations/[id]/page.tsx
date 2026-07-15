@@ -294,9 +294,9 @@ export default async function AdminFormationDetailPage({
           </span>
         </label>
         <ImageUploadField
-          label="Image de couverture (bannière)"
+          label="Photo / bannière de la formation"
           currentUrl={course.thumbnailUrl}
-          hint="Importez une image depuis votre appareil. Sinon, YouTube pourra fournir une vignette automatiquement."
+          hint="Cliquez pour importer une image depuis votre appareil. Sinon YouTube peut fournir une vignette auto."
         />
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">

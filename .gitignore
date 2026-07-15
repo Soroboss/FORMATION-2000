@@ -28,8 +28,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — keep examples
+# env files — keep examples (never commit secrets)
 .env
+.env.local
 .env.*
 !.env.example
 

@@ -362,18 +362,20 @@ async function getCourseDetail(filter: { slug?: string; id?: string }): Promise<
     lessonRows = Array.isArray(lessons) ? (lessons as Record<string, unknown>[]) : [];
   }
 
-  const modulesWithLessons: ModuleWithLessons[] = moduleRows.map((mod) => {
-    const m = mod as Record<string, unknown>;
-    return {
-      id: String(m.id),
-      title: String(m.title),
-      description: (m.description as string | null) ?? null,
-      sortOrder: Number(m.sort_order ?? 0),
-      lessons: lessonRows
-        .filter((l) => String(l.module_id) === String(m.id))
-        .map(mapLessonSummary),
-    };
-  });
+  const modulesWithLessons: ModuleWithLessons[] = moduleRows
+    .map((mod) => {
+      const m = mod as Record<string, unknown>;
+      return {
+        id: String(m.id),
+        title: String(m.title),
+        description: (m.description as string | null) ?? null,
+        sortOrder: Number(m.sort_order ?? 0),
+        lessons: lessonRows
+          .filter((l) => String(l.module_id) === String(m.id))
+          .map(mapLessonSummary),
+      };
+    })
+    .filter((mod) => mod.lessons.length > 0);
 
   const lessonCount = modulesWithLessons.reduce((acc, m) => acc + m.lessons.length, 0);
   const base = mapCourseListItem(courseRow, lessonCount, categoryById);

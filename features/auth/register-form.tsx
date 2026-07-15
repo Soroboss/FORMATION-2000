@@ -16,6 +16,10 @@ export function RegisterForm() {
     return (
       <Alert variant="success">
         Compte créé. Vérifiez votre e-mail pour activer l&apos;accès, puis{" "}
+        <Link href="/verifier-email" className="font-semibold underline">
+          saisissez le code
+        </Link>{" "}
+        ou{" "}
         <Link href="/connexion" className="font-semibold underline">
           connectez-vous
         </Link>

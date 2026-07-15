@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireAdminSession, requireCatalogWriteSession } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/write";
 import { courseUpsertSchema } from "@/lib/validation/admin";
 import { listAdminCourses, upsertCourse } from "@/server/repositories/admin-catalog";
@@ -19,7 +19,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const body = await request.json();
     const parsed = courseUpsertSchema.safeParse(body);
     if (!parsed.success) {

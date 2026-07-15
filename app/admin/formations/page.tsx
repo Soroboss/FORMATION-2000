@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listAdminCourses } from "@/server/repositories/admin-catalog";
+import { listAdminCourses, listAdminCategories } from "@/server/repositories/admin-catalog";
 import { deleteCourseAction, publishCourseAction } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
@@ -9,11 +9,15 @@ import { accessTypeLabel, courseStatusLabel } from "@/lib/admin/labels";
 export default async function AdminFormationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string }>;
+  searchParams: Promise<{ created?: string; error?: string; ok?: string }>;
 }) {
-  const { created } = await searchParams;
-  const courses = await listAdminCourses();
+  const { created, error, ok } = await searchParams;
+  const [courses, categories] = await Promise.all([
+    listAdminCourses(),
+    listAdminCategories(),
+  ]);
   const createdCount = created ? Number(created) : 0;
+  const activeCategories = categories.filter((c) => c.isActive);
 
   return (
     <section className="space-y-6">
@@ -30,6 +34,23 @@ export default async function AdminFormationsPage({
         }
       />
 
+      {error ? (
+        <div
+          role="alert"
+          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {error}
+        </div>
+      ) : null}
+      {ok ? (
+        <div
+          role="status"
+          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+        >
+          {ok}
+        </div>
+      ) : null}
+
       {createdCount > 0 ? (
         <p className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
           {createdCount} formation{createdCount > 1 ? "s" : ""} créée
@@ -37,7 +58,10 @@ export default async function AdminFormationsPage({
         </p>
       ) : null}
 
-      <BulkCreateFormationsForm compact />
+      <BulkCreateFormationsForm
+        compact
+        categories={activeCategories.map((c) => ({ id: c.id, name: c.name }))}
+      />
 
       {courses.length === 0 ? (
         <AdminEmptyState
@@ -98,6 +122,7 @@ export default async function AdminFormationsPage({
                       {course.status !== "published" ? (
                         <form action={publishCourseAction}>
                           <input type="hidden" name="id" value={course.id} />
+                          <input type="hidden" name="returnTo" value="/admin/formations" />
                           <Button type="submit" size="sm" variant="secondary">
                             Publier
                           </Button>
@@ -105,6 +130,7 @@ export default async function AdminFormationsPage({
                       ) : null}
                       <form action={deleteCourseAction}>
                         <input type="hidden" name="id" value={course.id} />
+                        <input type="hidden" name="returnTo" value="/admin/formations" />
                         <Button type="submit" size="sm" variant="outline">
                           Supprimer
                         </Button>

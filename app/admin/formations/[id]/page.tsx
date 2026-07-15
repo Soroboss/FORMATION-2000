@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  deleteLessonAction,
   publishCourseAction,
   quickAddVideoLessonAction,
   saveCourseAction,
@@ -12,6 +13,7 @@ import {
   listAdminCategories,
   listLessonsForModule,
   listModulesForCourse,
+  nextLessonSortOrder,
 } from "@/server/repositories/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/admin/ui";
@@ -47,6 +49,8 @@ export default async function AdminFormationDetailPage({
   ).length;
   const coursePublished = course.status === "published";
   const readyForLearners = coursePublished && publishedVideos > 0;
+  const nextModuleSortOrder =
+    modules.length === 0 ? 0 : Math.max(...modules.map((m) => m.sortOrder)) + 1;
 
   return (
     <section className="space-y-8">
@@ -131,6 +135,11 @@ export default async function AdminFormationDetailPage({
         {!coursePublished ? (
           <form action={publishCourseAction} className="mt-4">
             <input type="hidden" name="id" value={course.id} />
+            <input
+              type="hidden"
+              name="returnTo"
+              value={`/admin/formations/${course.id}`}
+            />
             <Button type="submit" size="sm">
               Publier la formation maintenant
             </Button>
@@ -151,7 +160,22 @@ export default async function AdminFormationDetailPage({
           </p>
         </div>
         <input type="hidden" name="courseId" value={course.id} />
-        {modules[0] ? <input type="hidden" name="moduleId" value={modules[0].id} /> : null}
+        {modules.length > 0 ? (
+          <label className="block text-sm">
+            <span className="font-medium text-ink">Module cible</span>
+            <select
+              name="moduleId"
+              defaultValue={modules[0]?.id}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+            >
+              {modules.map((mod) => (
+                <option key={mod.id} value={mod.id}>
+                  {mod.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
 
         <label className="block text-sm">
           <span className="font-medium text-ink">Titre de la leçon</span>
@@ -230,6 +254,7 @@ export default async function AdminFormationDetailPage({
 
       <form action={saveCourseAction} className="ui-card space-y-4 p-5 sm:p-6">
         <input type="hidden" name="id" value={course.id} />
+        <input type="hidden" name="returnTo" value={`/admin/formations/${course.id}`} />
         <h2 className="font-display font-semibold text-ink">Métadonnées de la formation</h2>
         <label className="block text-sm">
           <span className="font-medium">Titre</span>
@@ -355,13 +380,21 @@ export default async function AdminFormationDetailPage({
         </label>
         <div className="flex flex-wrap gap-2">
           <Button type="submit">Enregistrer</Button>
-          {course.status !== "published" ? (
-            <Button formAction={publishCourseAction} type="submit" variant="secondary">
-              Publier
-            </Button>
-          ) : null}
         </div>
       </form>
+
+      {course.status !== "published" ? (
+        <form action={publishCourseAction} className="ui-card p-5 sm:p-6">
+          <input type="hidden" name="id" value={course.id} />
+          <input type="hidden" name="returnTo" value={`/admin/formations/${course.id}`} />
+          <p className="text-sm text-ink-muted">
+            Publiez la formation pour la rendre visible dans le catalogue apprenant.
+          </p>
+          <Button type="submit" className="mt-3" variant="secondary">
+            Publier la formation
+          </Button>
+        </form>
+      ) : null}
 
       <div className="space-y-4">
         <h2 className="font-display font-semibold text-ink">Modules & leçons</h2>
@@ -379,7 +412,7 @@ export default async function AdminFormationDetailPage({
           <input
             name="sortOrder"
             type="number"
-            defaultValue={modules.length}
+            defaultValue={nextModuleSortOrder}
             className="w-24 rounded-soft border border-canvas-border px-3 py-2 text-sm"
           />
           <Button type="submit" size="sm">
@@ -403,33 +436,86 @@ export default async function AdminFormationDetailPage({
               {mod.lessons.map((lesson) => (
                 <li
                   key={lesson.id}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-soft bg-canvas px-3 py-2"
+                  className="rounded-soft bg-canvas px-3 py-2 text-sm"
                 >
-                  <div className="min-w-0">
-                    <span className="font-medium text-ink">{lesson.title}</span>
-                    {lesson.youtubeUrl ? (
-                      <a
-                        href={lesson.youtubeUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-0.5 block truncate text-xs text-brand-600 hover:underline"
-                      >
-                        {lesson.youtubeUrl}
-                      </a>
-                    ) : (
-                      <span className="mt-0.5 block text-xs text-amber-700">
-                        Pas de lien vidéo
-                      </span>
-                    )}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="font-medium text-ink">{lesson.title}</span>
+                      {lesson.youtubeUrl ? (
+                        <a
+                          href={lesson.youtubeUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-0.5 block truncate text-xs text-brand-600 hover:underline"
+                        >
+                          {lesson.youtubeUrl}
+                        </a>
+                      ) : (
+                        <span className="mt-0.5 block text-xs text-amber-700">
+                          Pas de lien vidéo
+                        </span>
+                      )}
+                    </div>
+                    <span className="flex flex-wrap gap-2 text-xs text-ink-muted">
+                      <StatusBadge
+                        value={lesson.status}
+                        label={courseStatusLabel(lesson.status)}
+                      />
+                      <span>{lessonTypeLabel(lesson.lessonType)}</span>
+                      {lesson.isPreview ? <span>Aperçu gratuit</span> : null}
+                    </span>
                   </div>
-                  <span className="flex flex-wrap gap-2 text-xs text-ink-muted">
-                    <StatusBadge
-                      value={lesson.status}
-                      label={courseStatusLabel(lesson.status)}
-                    />
-                    <span>{lessonTypeLabel(lesson.lessonType)}</span>
-                    {lesson.isPreview ? <span>Aperçu gratuit</span> : null}
-                  </span>
+                  <details className="mt-2 border-t border-canvas-border pt-2">
+                    <summary className="cursor-pointer text-xs font-semibold text-brand-600">
+                      Modifier / supprimer
+                    </summary>
+                    <form action={saveLessonAction} className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <input type="hidden" name="courseId" value={course.id} />
+                      <input type="hidden" name="moduleId" value={mod.id} />
+                      <input type="hidden" name="id" value={lesson.id} />
+                      <input
+                        name="title"
+                        defaultValue={lesson.title}
+                        required
+                        className="rounded-soft border border-canvas-border px-3 py-2 text-sm sm:col-span-2"
+                      />
+                      <input
+                        name="youtubeUrl"
+                        defaultValue={lesson.youtubeUrl ?? ""}
+                        inputMode="url"
+                        placeholder="Lien YouTube"
+                        className="rounded-soft border border-canvas-border px-3 py-2 text-sm sm:col-span-2"
+                      />
+                      <select
+                        name="status"
+                        defaultValue={lesson.status}
+                        className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
+                      >
+                        <option value="published">Publié</option>
+                        <option value="draft">Brouillon</option>
+                      </select>
+                      <input type="hidden" name="lessonType" value={lesson.lessonType} />
+                      <input type="hidden" name="sortOrder" value={lesson.sortOrder} />
+                      <label className="flex items-center gap-2 text-sm text-ink">
+                        <input type="checkbox" name="isPreview" defaultChecked={lesson.isPreview} />
+                        Aperçu gratuit
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-ink">
+                        <input type="checkbox" name="isRequired" defaultChecked={lesson.isRequired} />
+                        Obligatoire
+                      </label>
+                      <Button type="submit" size="sm" className="sm:col-span-2">
+                        Enregistrer la leçon
+                      </Button>
+                    </form>
+                    <form action={deleteLessonAction} className="mt-2">
+                      <input type="hidden" name="courseId" value={course.id} />
+                      <input type="hidden" name="lessonId" value={lesson.id} />
+                      <Button type="submit" size="sm" variant="outline">
+                        Supprimer la leçon
+                      </Button>
+                    </form>
+                  </details>
                 </li>
               ))}
               {mod.lessons.length === 0 ? (
@@ -455,7 +541,7 @@ export default async function AdminFormationDetailPage({
                 <input
                   name="sortOrder"
                   type="number"
-                  defaultValue={mod.lessons.length}
+                  defaultValue={nextLessonSortOrder(mod.lessons)}
                   className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
                 />
                 <select

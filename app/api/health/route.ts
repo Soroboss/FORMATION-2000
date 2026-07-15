@@ -18,7 +18,9 @@ export async function GET() {
     timestamp: new Date().toISOString(),
     checks: {
       insforgePublicConfig: insforgeConfigured,
-      serviceKeyConfigured: Boolean(process.env.INSFORGE_SERVICE_KEY),
+      ...(process.env.NODE_ENV !== "production"
+        ? { serviceKeyConfigured: Boolean(process.env.INSFORGE_SERVICE_KEY) }
+        : {}),
       paymentProvider: process.env.PAYMENT_PROVIDER ?? "sandbox",
       checkoutMode: checkout.mode,
       launch: readiness,

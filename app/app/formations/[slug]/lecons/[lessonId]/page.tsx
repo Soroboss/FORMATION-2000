@@ -95,6 +95,20 @@ export default async function LessonPage({
           initialNote={noteContent}
           showNotes={Boolean(session)}
         />
+      ) : canWatch && !lesson.youtube ? (
+        <div className="ui-card border-dashed border-amber-300 bg-amber-50/60 p-6 text-sm text-ink">
+          <p className="font-display font-semibold text-ink">Vidéo indisponible</p>
+          <p className="mt-2 text-ink-muted">
+            Cette leçon est accessible mais la source YouTube n’a pas encore été configurée. Revenez
+            plus tard ou contactez le support si le problème persiste.
+          </p>
+          <Link
+            href={`/app/formations/${course.slug}`}
+            className="mt-4 inline-flex h-10 items-center rounded-brand border border-canvas-border px-4 text-sm font-semibold text-ink hover:bg-white"
+          >
+            Retour au parcours
+          </Link>
+        </div>
       ) : (
         <div className="ui-card border-dashed border-action-200 bg-action-50/50 p-6 text-sm text-ink">
           <p className="font-display font-semibold text-ink">Leçon verrouillée</p>

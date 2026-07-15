@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireCatalogWriteSession } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/write";
 import {
   categoryUpsertSchema,
@@ -14,8 +14,11 @@ import {
 import {
   createReadyFormation,
   deleteCourse,
+  deleteLesson,
   ensureDefaultModule,
+  getAdminCourse,
   listLessonsForModule,
+  nextLessonSortOrder,
   publishCourse,
   upsertAssignmentForLesson,
   upsertCategory,
@@ -37,9 +40,25 @@ function formBool(fd: FormData, key: string) {
   return v === "on" || v === "true" || v === "1";
 }
 
+function safeReturnTo(value: string, fallback: string): string {
+  if (value.startsWith("/admin") && !value.startsWith("//")) return value;
+  return fallback;
+}
+
+function revalidateCoursePaths(course: { id: string; slug: string }) {
+  revalidatePath("/admin/formations");
+  revalidatePath(`/admin/formations/${course.id}`);
+  revalidatePath("/formations");
+  revalidatePath(`/formations/${course.slug}`);
+  revalidatePath(`/app/formations/${course.slug}`);
+  revalidatePath("/app/catalogue");
+  revalidatePath("/categories");
+}
+
 export async function saveCategoryAction(formData: FormData): Promise<void> {
+  const back = safeReturnTo(formString(formData, "returnTo"), "/admin/categories");
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const parsed = categoryUpsertSchema.safeParse({
       name: formString(formData, "name"),
       slug: formString(formData, "slug") || undefined,
@@ -50,7 +69,9 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
       isActive: formBool(formData, "isActive"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirect(
+        `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Données invalides")}`,
+      );
     }
     const id = formString(formData, "id") || undefined;
     const category = await upsertCategory({
@@ -74,15 +95,21 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
     revalidatePath("/formations");
     revalidatePath("/categories");
     revalidatePath("/app/catalogue");
-    return;
+    redirect(`${back}?ok=${encodeURIComponent("Catégorie enregistrée")}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
 export async function saveCourseAction(formData: FormData): Promise<void> {
+  const id = formString(formData, "id") || undefined;
+  const back = id
+    ? safeReturnTo(formString(formData, "returnTo"), `/admin/formations/${id}`)
+    : safeReturnTo(formString(formData, "returnTo"), "/admin/formations");
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const parsed = courseUpsertSchema.safeParse({
       title: formString(formData, "title"),
       slug: formString(formData, "slug") || undefined,
@@ -100,9 +127,10 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       status: formString(formData, "status") || "draft",
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirect(
+        `${back}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Données invalides")}`,
+      );
     }
-    const id = formString(formData, "id") || undefined;
     const learningOutcomes = (parsed.data.learningOutcomes ?? "")
       .split("\n")
       .map((line) => line.trim())
@@ -136,44 +164,55 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       entityId: course.id,
       newValues: { title: course.title, status: course.status },
     });
-    revalidatePath("/admin/formations");
-    revalidatePath(`/admin/formations/${course.id}`);
-    revalidatePath("/formations");
-    revalidatePath(`/formations/${course.slug}`);
-    revalidatePath(`/app/formations/${course.slug}`);
-    revalidatePath("/app/catalogue");
-    return;
+    revalidateCoursePaths(course);
+    redirect(
+      `/admin/formations/${course.id}?ok=${encodeURIComponent("Formation enregistrée")}`,
+    );
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
 export async function publishCourseAction(formData: FormData): Promise<void> {
+  const courseId = formString(formData, "id");
+  const back = courseId
+    ? safeReturnTo(
+        formString(formData, "returnTo"),
+        `/admin/formations/${courseId}`,
+      )
+    : "/admin/formations";
   try {
-    const session = await requireAdminSession();
-    const id = formString(formData, "id");
-    if (!id) throw new Error("ID manquant");
-    await publishCourse(id);
+    const session = await requireCatalogWriteSession();
+    if (!courseId) {
+      redirect(`${back}?error=${encodeURIComponent("ID manquant")}`);
+    }
+    const course = await publishCourse(courseId);
     await writeAuditLog({
       actorUserId: session.user.id,
       action: "course.publish",
       entityType: "course",
-      entityId: id,
+      entityId: courseId,
     });
-    revalidatePath("/admin/formations");
-    revalidatePath(`/admin/formations/${id}`);
-    revalidatePath("/formations");
-    return;
+    revalidateCoursePaths(course);
+    redirect(`${back}?ok=${encodeURIComponent("Formation publiée")}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
 export async function deleteCourseAction(formData: FormData): Promise<void> {
+  const back = safeReturnTo(formString(formData, "returnTo"), "/admin/formations");
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const id = formString(formData, "id");
-    if (!id) throw new Error("ID manquant");
+    if (!id) {
+      redirect(`${back}?error=${encodeURIComponent("ID manquant")}`);
+    }
+    const existing = await getAdminCourse(id);
     await deleteCourse(id);
     await writeAuditLog({
       actorUserId: session.user.id,
@@ -183,9 +222,16 @@ export async function deleteCourseAction(formData: FormData): Promise<void> {
     });
     revalidatePath("/admin/formations");
     revalidatePath("/formations");
-    return;
+    revalidatePath("/app/catalogue");
+    if (existing?.slug) {
+      revalidatePath(`/formations/${existing.slug}`);
+      revalidatePath(`/app/formations/${existing.slug}`);
+    }
+    redirect(`${back}?ok=${encodeURIComponent("Formation supprimée")}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
   }
 }
 
@@ -193,7 +239,7 @@ export async function saveModuleAction(formData: FormData): Promise<void> {
   const courseId = formString(formData, "courseId");
   const back = courseId ? `/admin/formations/${courseId}` : "/admin/formations";
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const parsed = moduleUpsertSchema.safeParse({
       courseId,
       title: formString(formData, "title"),
@@ -226,7 +272,7 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
   const courseId = formString(formData, "courseId");
   const back = courseId ? `/admin/formations/${courseId}` : "/admin/formations";
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const lessonType = formString(formData, "lessonType") || "youtube";
     const youtubeUrl = formString(formData, "youtubeUrl");
     const statusRaw = formString(formData, "status");
@@ -263,8 +309,43 @@ export async function saveLessonAction(formData: FormData): Promise<void> {
       entityId: lesson.id,
       newValues: { title: lesson.title, youtubeUrl: lesson.youtubeUrl },
     });
-    if (courseId) revalidatePath(`/admin/formations/${courseId}`);
-    redirect(`${back}?ok=${encodeURIComponent("Leçon enregistrée")}`);
+    if (courseId) {
+      revalidatePath(`/admin/formations/${courseId}`);
+      const course = await getAdminCourse(courseId);
+      if (course) revalidateCoursePaths(course);
+    }
+    redirect(
+      `${back}?ok=${encodeURIComponent(id ? "Leçon mise à jour" : "Leçon enregistrée")}`,
+    );
+  } catch (error) {
+    if (isRedirectError(error)) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    redirect(`${back}?error=${encodeURIComponent(message)}`);
+  }
+}
+
+export async function deleteLessonAction(formData: FormData): Promise<void> {
+  const courseId = formString(formData, "courseId");
+  const back = courseId ? `/admin/formations/${courseId}` : "/admin/formations";
+  try {
+    const session = await requireCatalogWriteSession();
+    const lessonId = formString(formData, "lessonId");
+    if (!lessonId) {
+      redirect(`${back}?error=${encodeURIComponent("Leçon introuvable")}`);
+    }
+    await deleteLesson(lessonId);
+    await writeAuditLog({
+      actorUserId: session.user.id,
+      action: "lesson.delete",
+      entityType: "lesson",
+      entityId: lessonId,
+    });
+    if (courseId) {
+      revalidatePath(`/admin/formations/${courseId}`);
+      const course = await getAdminCourse(courseId);
+      if (course) revalidateCoursePaths(course);
+    }
+    redirect(`${back}?ok=${encodeURIComponent("Leçon supprimée")}`);
   } catch (error) {
     if (isRedirectError(error)) throw error;
     const message = error instanceof Error ? error.message : String(error);
@@ -283,7 +364,7 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
     : "/admin/formations";
 
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const parsed = quickAddVideoLessonSchema.safeParse({
       courseId,
       moduleId: formString(formData, "moduleId") || undefined,
@@ -307,7 +388,6 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
       : await ensureDefaultModule(parsed.data.courseId);
 
     const existingLessons = await listLessonsForModule(targetModule.id);
-    // Prefer repairing a lesson that has no YouTube source yet (same title).
     const orphan = existingLessons.find(
       (l) => !l.youtubeUrl && l.title.trim().toLowerCase() === title.trim().toLowerCase(),
     );
@@ -320,7 +400,7 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
       title,
       lessonType: "youtube",
       estimatedDurationMinutes: orphan?.estimatedDurationMinutes ?? 0,
-      sortOrder: orphan?.sortOrder ?? existingLessons.length,
+      sortOrder: orphan?.sortOrder ?? nextLessonSortOrder(existingLessons),
       isPreview,
       isRequired: true,
       status,
@@ -362,10 +442,8 @@ export async function quickAddVideoLessonAction(formData: FormData): Promise<voi
       },
     });
 
-    revalidatePath(`/admin/formations/${parsed.data.courseId}`);
-    revalidatePath("/admin/formations");
-    revalidatePath("/formations");
-    revalidatePath("/app");
+    const course = await getAdminCourse(parsed.data.courseId);
+    if (course) revalidateCoursePaths(course);
     redirect(
       `/admin/formations/${parsed.data.courseId}?ok=${encodeURIComponent("Vidéo ajoutée")}`,
     );
@@ -391,7 +469,7 @@ export async function bulkCreateFormationsAction(
   formData: FormData,
 ): Promise<BulkCreateFormationsState> {
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     let items: unknown;
     try {
       items = JSON.parse(formString(formData, "payload") || "[]");
@@ -399,7 +477,11 @@ export async function bulkCreateFormationsAction(
       return { ok: false, message: "Données invalides" };
     }
 
-    const parsed = bulkCreateFormationsSchema.safeParse({ items });
+    const categoryIdRaw = formString(formData, "categoryId");
+    const parsed = bulkCreateFormationsSchema.safeParse({
+      items,
+      categoryId: categoryIdRaw || undefined,
+    });
     if (!parsed.success) {
       return {
         ok: false,
@@ -414,6 +496,7 @@ export async function bulkCreateFormationsAction(
         youtubeUrl: item.youtubeUrl,
         visibility: item.visibility,
         authorUserId: session.user.id,
+        categoryId: parsed.data.categoryId,
       });
       created.push(result.courseId);
       await writeAuditLog({
@@ -425,6 +508,7 @@ export async function bulkCreateFormationsAction(
           title: item.title,
           youtubeUrl: item.youtubeUrl,
           visibility: item.visibility,
+          categoryId: parsed.data.categoryId ?? null,
           lessonId: result.lessonId,
         },
       });
@@ -433,6 +517,8 @@ export async function bulkCreateFormationsAction(
     revalidatePath("/admin/formations");
     revalidatePath("/formations");
     revalidatePath("/app");
+    revalidatePath("/app/catalogue");
+    revalidatePath("/categories");
 
     redirect(`/admin/formations?created=${created.length}`);
   } catch (error) {

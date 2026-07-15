@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { paymentInitializeSchema } from "@/lib/validation/api";
 import { initializeCheckout } from "@/server/services/payments";
 
 export async function POST(request: NextRequest) {
@@ -14,12 +15,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json().catch(() => ({}))) as { planSlug?: string };
+    const body = await request.json().catch(() => ({}));
+    const parsed = paymentInitializeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "INVALID_BODY",
+            message: parsed.error.issues[0]?.message ?? "Données invalides.",
+          },
+        },
+        { status: 400 },
+      );
+    }
+
     const result = await initializeCheckout({
       userId: session.user.id,
       email: session.user.email,
       displayName: session.profile?.displayName ?? session.user.name,
-      planSlug: body.planSlug ?? "acces-mensuel",
+      planSlug: parsed.data.planSlug ?? "acces-mensuel",
     });
 
     console.log(

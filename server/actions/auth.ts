@@ -14,6 +14,7 @@ import {
   loginSchema,
   registerSchema,
 } from "@/lib/validation/auth";
+import { resendVerificationSchema, verifyEmailSchema } from "@/lib/validation/api";
 import { getAppUrl } from "@/lib/utils";
 
 export type AuthActionResult = {
@@ -188,6 +189,80 @@ export async function enterLearnerWorkspaceAction(): Promise<void> {
 export async function exitLearnerWorkspaceAction(): Promise<void> {
   await disableLearnerPreview();
   redirect("/admin/tableau-de-bord");
+}
+
+export async function verifyEmailAction(formData: FormData): Promise<AuthActionResult> {
+  const parsed = verifyEmailSchema.safeParse({
+    email: formString(formData, "email").toLowerCase(),
+    otp: formString(formData, "otp"),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Code invalide.",
+    };
+  }
+
+  try {
+    const client = createInsForgeServerClient();
+    const { data, error } = await client.auth.verifyEmail({
+      email: parsed.data.email,
+      otp: parsed.data.otp,
+    });
+
+    if (error || !data?.accessToken || !data?.refreshToken) {
+      return {
+        success: false,
+        error: error?.message ?? "Code incorrect ou expiré.",
+      };
+    }
+
+    await setAuthCookies(data.accessToken, data.refreshToken);
+    redirect("/app/tableau-de-bord");
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) {
+      throw error;
+    }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Vérification impossible.",
+    };
+  }
+}
+
+export async function resendVerificationEmailAction(
+  formData: FormData,
+): Promise<AuthActionResult> {
+  const parsed = resendVerificationSchema.safeParse({
+    email: formString(formData, "email").toLowerCase(),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "E-mail invalide.",
+    };
+  }
+
+  try {
+    const client = createInsForgeServerClient();
+    const { error } = await client.auth.resendVerificationEmail({
+      email: parsed.data.email,
+      redirectTo: `${getAppUrl()}/connexion`,
+    });
+
+    if (error) {
+      return { success: false, error: error.message ?? "Envoi impossible." };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Envoi impossible.",
+    };
+  }
 }
 
 export async function forgotPasswordAction(formData: FormData): Promise<AuthActionResult> {

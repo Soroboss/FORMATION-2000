@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { mustVerifyEmailForLearnerApp } from "@/lib/auth/email-verification";
 import { canAccessAdmin } from "@/lib/permissions/roles";
 import { isLearnerPreviewActive } from "@/lib/auth/workspace";
 import {
@@ -18,6 +19,10 @@ export default async function LearnerAppLayout({ children }: { children: React.R
   const session = await getSession();
   if (!session) {
     redirect("/connexion?next=/app/tableau-de-bord");
+  }
+
+  if (mustVerifyEmailForLearnerApp(session)) {
+    redirect("/verifier-email");
   }
 
   const isAdmin = canAccessAdmin(session.roles);

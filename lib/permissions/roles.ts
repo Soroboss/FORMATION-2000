@@ -47,7 +47,18 @@ export function isStaff(userRoles: readonly string[]): boolean {
 }
 
 export function canAccessAdmin(userRoles: readonly string[]): boolean {
-  return hasAnyRole(userRoles, ["support", "admin", "super_admin"]);
+  return hasAnyRole(userRoles, [
+    "curator",
+    "instructor",
+    "support",
+    "admin",
+    "super_admin",
+  ]);
+}
+
+/** Création / édition formations, modules, leçons, catégories. */
+export function canWriteCatalogContent(userRoles: readonly string[]): boolean {
+  return hasAnyRole(userRoles, ["curator", "instructor", "admin", "super_admin"]);
 }
 
 /** Accueil après connexion selon le type de compte. */

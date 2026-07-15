@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { lessonProgressSchema } from "@/lib/validation/api";
 import { getCourseById, getCourseBySlug, getLessonDetail } from "@/server/repositories/catalog";
 import {
   ensureEnrollment,
@@ -19,24 +20,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = (await request.json()) as {
-      courseSlug?: string;
-      lessonId?: string;
-      action?: "start" | "update" | "complete";
-      lastPositionSeconds?: number;
-      progressPercent?: number;
-    };
-
-    if (!body.courseSlug || !body.lessonId || !body.action) {
+    const body = await request.json().catch(() => null);
+    const parsed = lessonProgressSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: { code: "INVALID_BODY", message: "Payload invalide." } },
+        {
+          error: {
+            code: "INVALID_BODY",
+            message: parsed.error.issues[0]?.message ?? "Payload invalide.",
+          },
+        },
         { status: 400 },
       );
     }
 
     const detail = await getLessonDetail({
-      courseSlug: body.courseSlug,
-      lessonId: body.lessonId,
+      courseSlug: parsed.data.courseSlug,
+      lessonId: parsed.data.lessonId,
     });
     if (!detail) {
       return NextResponse.json(
@@ -61,20 +61,20 @@ export async function POST(request: NextRequest) {
     await ensureEnrollment(session.user.id, detail.course.id);
 
     let progress;
-    if (body.action === "start") {
+    if (parsed.data.action === "start") {
       progress = await upsertLessonProgress({
         userId: session.user.id,
         lessonId: detail.lesson.id,
         status: "in_progress",
         progressPercent: 10,
       });
-    } else if (body.action === "update") {
+    } else if (parsed.data.action === "update") {
       progress = await upsertLessonProgress({
         userId: session.user.id,
         lessonId: detail.lesson.id,
         status: "in_progress",
-        progressPercent: Math.min(99, Math.max(10, body.progressPercent ?? 20)),
-        lastPositionSeconds: body.lastPositionSeconds,
+        progressPercent: Math.min(99, Math.max(10, parsed.data.progressPercent ?? 20)),
+        lastPositionSeconds: parsed.data.lastPositionSeconds,
       });
     } else {
       progress = await upsertLessonProgress({
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         lessonId: detail.lesson.id,
         status: "completed",
         progressPercent: 100,
-        lastPositionSeconds: body.lastPositionSeconds,
+        lastPositionSeconds: parsed.data.lastPositionSeconds,
       });
 
       const requiredLessonIds = detail.course.modules
@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
         level: "info",
         msg: "progress_updated",
         route: "/api/progress/lesson",
-        action: body.action,
-        lessonId: body.lessonId,
+        action: parsed.data.action,
+        lessonId: parsed.data.lessonId,
         ms: Date.now() - start,
       }),
     );

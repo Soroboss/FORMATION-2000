@@ -6,6 +6,12 @@ import {
 } from "@/lib/security/rate-limit";
 import { redactSecrets } from "@/lib/observability/log";
 import { safeInternalPath } from "@/lib/utils";
+import {
+  mustVerifyEmailForLearnerApp,
+  readEmailVerifiedFlag,
+} from "@/lib/auth/email-verification";
+import { lessonProgressSchema } from "@/lib/validation/api";
+import type { AppSession } from "@/lib/auth/session";
 
 describe("CSP / security headers", () => {
   it("autorise YouTube et bloque object", () => {
@@ -69,5 +75,50 @@ describe("redactSecrets", () => {
     expect(redacted.token).toBe("[redacted]");
     expect(redacted.ok).toBe("visible");
     expect((redacted.nested as Record<string, unknown>).api_key).toBe("[redacted]");
+  });
+});
+
+describe("email verification", () => {
+  const baseSession: AppSession = {
+    user: { id: "u1", email: "a@b.com", emailVerified: false, name: null },
+    profile: null,
+    roles: ["learner"],
+  };
+
+  it("lit les drapeaux InsForge", () => {
+    expect(readEmailVerifiedFlag({ emailVerified: true })).toBe(true);
+    expect(readEmailVerifiedFlag({ email_verified: false })).toBe(false);
+    expect(readEmailVerifiedFlag({ profile: { emailVerified: true } })).toBe(true);
+    expect(readEmailVerifiedFlag({})).toBeNull();
+  });
+
+  it("bloque l’app apprenant si e-mail non vérifié", () => {
+    expect(mustVerifyEmailForLearnerApp(baseSession)).toBe(true);
+    expect(
+      mustVerifyEmailForLearnerApp({
+        ...baseSession,
+        user: { ...baseSession.user, emailVerified: true },
+      }),
+    ).toBe(false);
+    expect(
+      mustVerifyEmailForLearnerApp({
+        ...baseSession,
+        roles: ["support"],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("API validation", () => {
+  it("valide la progression leçon", () => {
+    const ok = lessonProgressSchema.safeParse({
+      courseSlug: "intro",
+      lessonId: "550e8400-e29b-41d4-a716-446655440000",
+      action: "complete",
+      progressPercent: 100,
+    });
+    expect(ok.success).toBe(true);
+    const bad = lessonProgressSchema.safeParse({ courseSlug: "", lessonId: "x", action: "nope" });
+    expect(bad.success).toBe(false);
   });
 });

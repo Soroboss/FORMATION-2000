@@ -7,6 +7,8 @@ import {
 } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 
+type CategoryOption = { id: string; name: string };
+
 type Row = {
   key: string;
   title: string;
@@ -30,10 +32,13 @@ const initialState: BulkCreateFormationsState = {
 
 export function BulkCreateFormationsForm({
   compact = false,
+  categories = [],
 }: {
   compact?: boolean;
+  categories?: CategoryOption[];
 }) {
   const [rows, setRows] = useState<Row[]>([emptyRow(), emptyRow(), emptyRow()]);
+  const [categoryId, setCategoryId] = useState("");
   const [state, action, pending] = useActionState(bulkCreateFormationsAction, initialState);
 
   function updateRow(key: string, patch: Partial<Row>) {
@@ -72,6 +77,28 @@ export function BulkCreateFormationsForm({
       </div>
 
       <input type="hidden" name="payload" value={payload} />
+      <input type="hidden" name="categoryId" value={categoryId} />
+
+      {categories.length > 0 ? (
+        <label className="block text-sm">
+          <span className="font-medium text-ink">Catégorie (recommandé)</span>
+          <select
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+          >
+            <option value="">— Sans catégorie —</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          <span className="mt-1 block text-xs text-ink-muted">
+            Sans catégorie, la formation n’apparaît pas dans les filtres par catégorie.
+          </span>
+        </label>
+      ) : null}
 
       <div className="space-y-3">
         {rows.map((row, index) => (

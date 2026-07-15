@@ -5,12 +5,19 @@ import {
   getRefreshToken,
   setAuthCookies,
 } from "@/lib/auth/cookies";
-import { canAccessAdmin, type RoleKey } from "@/lib/permissions/roles";
+import {
+  canAccessAdmin,
+  canWriteCatalogContent,
+  type RoleKey,
+} from "@/lib/permissions/roles";
+import { readEmailVerifiedFlag } from "@/lib/auth/email-verification";
 
 export type AuthUser = {
   id: string;
   email: string;
   name?: string | null;
+  /** null = inconnu (InsForge ne renvoie pas le flag) ; false = non vérifié */
+  emailVerified: boolean | null;
 };
 
 export type SessionProfile = {
@@ -57,6 +64,7 @@ async function loadSessionForToken(accessToken: string): Promise<AppSession | nu
   const user: AuthUser = {
     id: data.user.id,
     email: data.user.email,
+    emailVerified: readEmailVerifiedFlag(data.user),
     name:
       (typeof data.user.profile === "object" &&
       data.user.profile &&
@@ -170,6 +178,16 @@ export async function requireAdminSession(): Promise<AppSession> {
   const session = await requireSession();
   if (!canAccessAdmin(session.roles)) {
     throw new Error("FORBIDDEN");
+  }
+  return session;
+}
+
+export async function requireCatalogWriteSession(): Promise<AppSession> {
+  const session = await requireAdminSession();
+  if (!canWriteCatalogContent(session.roles)) {
+    throw new Error(
+      "Votre rôle ne permet pas de modifier le catalogue (support : consultation uniquement).",
+    );
   }
   return session;
 }

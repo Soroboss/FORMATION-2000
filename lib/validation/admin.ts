@@ -92,6 +92,7 @@ export const bulkCreateFormationsSchema = z.object({
     .array(bulkCreateFormationItemSchema)
     .min(1, "Ajoutez au moins une formation")
     .max(30, "Maximum 30 formations à la fois"),
+  categoryId: z.string().uuid("Catégorie invalide").optional(),
 });
 
 export const memberStatusSchema = z.object({

@@ -24,44 +24,52 @@ function withRequestId(response: NextResponse, requestId: string) {
   return response;
 }
 
+function rateLimitedJson(requestId: string) {
+  const res = NextResponse.json(
+    {
+      error: {
+        code: "RATE_LIMITED",
+        message: "Trop de requêtes. Réessayez plus tard.",
+      },
+    },
+    { status: 429 },
+  );
+  res.headers.set("Retry-After", "60");
+  return withRequestId(res, requestId);
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
   const ip = clientKey(request);
 
-  // Auth pages / payment init — soft rate limit
   const isAuthPage =
     pathname === "/connexion" ||
     pathname === "/inscription" ||
-    pathname === "/mot-de-passe-oublie";
+    pathname === "/mot-de-passe-oublie" ||
+    pathname === "/verifier-email";
   const isSensitiveApi =
     pathname.startsWith("/api/payments") ||
     pathname.startsWith("/api/webhooks/payments") ||
     pathname.startsWith("/api/auth");
+  const isAdminApi = pathname.startsWith("/api/admin");
+  const isProgressApi = pathname.startsWith("/api/progress");
+  const isCronApi = pathname.startsWith("/api/cron");
+  const isProtectedApi = isAdminApi || isProgressApi;
 
-  if (isAuthPage || isSensitiveApi) {
-    // Don't JSON-block ordinary page GETs — only APIs and mutating requests.
-    const shouldLimit = isSensitiveApi || request.method !== "GET";
+  if (isAuthPage || isSensitiveApi || isProtectedApi || isCronApi) {
+    const shouldLimit =
+      isSensitiveApi || isProtectedApi || isCronApi || request.method !== "GET";
     if (shouldLimit) {
-      const limit = isSensitiveApi ? 60 : 30;
+      const limit = isCronApi ? 20 : isSensitiveApi || isProtectedApi ? 60 : 30;
       const result = checkRateLimit({
         key: `${pathname}:${request.method}:${ip}`,
         limit,
         windowMs: 60_000,
       });
       if (!result.allowed) {
-        if (isSensitiveApi) {
-          const res = NextResponse.json(
-            {
-              error: {
-                code: "RATE_LIMITED",
-                message: "Trop de requêtes. Réessayez plus tard.",
-              },
-            },
-            { status: 429 },
-          );
-          res.headers.set("Retry-After", "60");
-          return withRequestId(res, requestId);
+        if (isSensitiveApi || isProtectedApi || isCronApi) {
+          return rateLimitedJson(requestId);
         }
         const res = new NextResponse("Trop de requêtes. Réessayez dans une minute.", {
           status: 429,
@@ -72,6 +80,16 @@ export function middleware(request: NextRequest) {
     }
   }
 
+  if (isProtectedApi && !hasSessionCookies(request)) {
+    return withRequestId(
+      NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "Connexion requise." } },
+        { status: 401 },
+      ),
+      requestId,
+    );
+  }
+
   const isProtected =
     pathname.startsWith("/app") || pathname.startsWith("/admin");
 
@@ -80,10 +98,6 @@ export function middleware(request: NextRequest) {
     loginUrl.searchParams.set("next", pathname);
     return withRequestId(NextResponse.redirect(loginUrl), requestId);
   }
-
-  // Ne pas rediriger /connexion|/inscription juste parce que des cookies existent :
-  // des cookies expirés/invalides provoqueraient une boucle avec le layout /app.
-  // La page connexion vérifie la session serveur et redirige si elle est valide.
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
@@ -100,8 +114,12 @@ export const config = {
     "/connexion",
     "/inscription",
     "/mot-de-passe-oublie",
+    "/verifier-email",
     "/api/payments/:path*",
     "/api/webhooks/payments/:path*",
     "/api/auth/:path*",
+    "/api/admin/:path*",
+    "/api/progress/:path*",
+    "/api/cron/:path*",
   ],
 };

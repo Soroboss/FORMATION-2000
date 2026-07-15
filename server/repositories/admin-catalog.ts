@@ -233,13 +233,39 @@ export async function upsertCourse(input: {
 
   const course = mapCourse(data as Record<string, unknown>);
 
-  if (input.categoryId) {
-    await client.database
-      .from("course_categories")
-      .upsert({ course_id: course.id, category_id: input.categoryId });
-  }
+  await syncCourseCategories(client, course.id, input.categoryId ?? null);
 
   return course;
+}
+
+async function syncCourseCategories(
+  client: Awaited<ReturnType<typeof getAdminDbClient>>,
+  courseId: string,
+  categoryId: string | null,
+): Promise<void> {
+  const { error: deleteError } = await client.database
+    .from("course_categories")
+    .delete()
+    .eq("course_id", courseId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (categoryId) {
+    const { error: insertError } = await client.database
+      .from("course_categories")
+      .insert({ course_id: courseId, category_id: categoryId });
+    if (insertError) throw new Error(insertError.message);
+  }
+}
+
+export function nextLessonSortOrder(lessons: Pick<AdminLesson, "sortOrder">[]): number {
+  if (lessons.length === 0) return 0;
+  return Math.max(...lessons.map((l) => l.sortOrder)) + 1;
+}
+
+export async function deleteLesson(id: string): Promise<void> {
+  const client = await getAdminDbClient();
+  const { error } = await client.database.from("lessons").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }
 
 export async function publishCourse(id: string): Promise<AdminCourse> {
@@ -629,6 +655,7 @@ export async function createReadyFormation(input: {
   youtubeUrl: string;
   visibility: "subscribers" | "preview" | "draft";
   authorUserId: string;
+  categoryId?: string;
 }): Promise<{ courseId: string; lessonId: string; slug: string }> {
   const isDraft = input.visibility === "draft";
   const isPreview = input.visibility === "preview";
@@ -637,10 +664,11 @@ export async function createReadyFormation(input: {
   const course = await upsertCourse({
     title: input.title,
     slug: uniqueSlug,
+    categoryId: input.categoryId,
     accessType: "subscription",
     estimatedDurationMinutes: 0,
     isFeatured: false,
-    status: isDraft ? "draft" : "published",
+    status: "draft",
     authorUserId: input.authorUserId,
   });
 
@@ -663,5 +691,14 @@ export async function createReadyFormation(input: {
     youtubeUrl: input.youtubeUrl,
   });
 
-  return { courseId: course.id, lessonId: lesson.id, slug: course.slug };
+  if (!isDraft) {
+    await publishCourse(course.id);
+  }
+
+  const published = isDraft ? course : await getAdminCourse(course.id);
+  return {
+    courseId: course.id,
+    lessonId: lesson.id,
+    slug: published?.slug ?? course.slug,
+  };
 }

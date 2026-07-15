@@ -20,8 +20,10 @@ describe("roles", () => {
     expect(hasRole(["learner"], "admin")).toBe(false);
   });
 
-  it("autorise l'admin et le support au back-office", () => {
+  it("autorise l'admin, le support et les rôles contenu au back-office", () => {
     expect(canAccessAdmin(["learner"])).toBe(false);
+    expect(canAccessAdmin(["curator"])).toBe(true);
+    expect(canAccessAdmin(["instructor"])).toBe(true);
     expect(canAccessAdmin(["support"])).toBe(true);
     expect(canAccessAdmin(["admin"])).toBe(true);
     expect(canAccessAdmin(["super_admin"])).toBe(true);

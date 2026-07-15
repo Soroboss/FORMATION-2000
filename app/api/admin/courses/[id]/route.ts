@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminSession } from "@/lib/auth/session";
+import { requireAdminSession, requireCatalogWriteSession } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/write";
 import { courseUpsertSchema } from "@/lib/validation/admin";
 import {
@@ -36,7 +36,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const { id } = await context.params;
     const body = await request.json();
     const parsed = courseUpsertSchema.safeParse(body);
@@ -78,7 +78,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await requireAdminSession();
+    const session = await requireCatalogWriteSession();
     const { id } = await context.params;
     await deleteCourse(id);
     await writeAuditLog({

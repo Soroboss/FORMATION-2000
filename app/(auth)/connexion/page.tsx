@@ -18,9 +18,16 @@ export const metadata: Metadata = {
 export default async function ConnexionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    error?: string;
+    insforge_type?: string;
+    insforge_status?: string;
+  }>;
 }) {
   const params = await searchParams;
+  const emailVerifiedByLink =
+    params.insforge_type === "verify_email" && params.insforge_status === "success";
   const session = await getSession();
   if (session) {
     const destination = resolvePostLoginPath(params.next, session.roles);
@@ -41,6 +48,11 @@ export default async function ConnexionPage({
           d&apos;administration.
         </p>
       </div>
+      {emailVerifiedByLink ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          E-mail vérifié avec succès. Connectez-vous avec votre mot de passe.
+        </p>
+      ) : null}
       {params.error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           Impossible de finaliser l&apos;authentification. Réessayez.

@@ -3,7 +3,12 @@ import { listAdminCategories } from "@/server/repositories/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
 
-export default async function AdminCategoriesPage() {
+export default async function AdminCategoriesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; ok?: string }>;
+}) {
+  const flash = await searchParams;
   const categories = await listAdminCategories();
 
   return (
@@ -13,10 +18,28 @@ export default async function AdminCategoriesPage() {
         description="Organisation du catalogue visible côté apprenant. Ajoutez une image de couverture (URL)."
       />
 
+      {flash.error ? (
+        <div
+          role="alert"
+          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {flash.error}
+        </div>
+      ) : null}
+      {flash.ok ? (
+        <div
+          role="status"
+          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+        >
+          {flash.ok}
+        </div>
+      ) : null}
+
       <form
         action={saveCategoryAction}
         className="ui-card grid gap-3 p-5 sm:grid-cols-2 sm:p-6"
       >
+        <input type="hidden" name="returnTo" value="/admin/categories" />
         <h2 className="font-display font-semibold text-ink sm:col-span-2">Ajouter une catégorie</h2>
         <input
           name="name"
@@ -74,6 +97,7 @@ export default async function AdminCategoriesPage() {
             <li key={cat.id} className="ui-card p-4 sm:p-5">
               <form action={saveCategoryAction} className="grid gap-3 sm:grid-cols-2">
                 <input type="hidden" name="id" value={cat.id} />
+                <input type="hidden" name="returnTo" value="/admin/categories" />
                 <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="font-semibold text-ink">{cat.name}</p>
                   <StatusBadge

@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen } from "lucide-react";
 import { CourseCard } from "@/components/learning/course-card";
-import { resolveCategoryEmoji, resolveCategoryIcon } from "@/lib/learning/category-icons";
+import { CategoryHero } from "@/components/learning/category-hero";
+import { JsonLd } from "@/components/seo/json-ld";
+import {
+  buildCategoryJsonLd,
+  buildCategoryMetadata,
+} from "@/lib/seo/category-metadata";
 import { getCategoryBySlug, listCourses } from "@/server/repositories/catalog";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -12,12 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = await getCategoryBySlug(slug);
   if (!category) return { title: "Catégorie introuvable" };
-  return {
-    title: category.name,
-    description:
-      category.description ??
-      `Formations ${category.name} sur Learnoon Academy — parcours structurés et accès premium.`,
-  };
+  return buildCategoryMetadata(category);
 }
 
 export default async function CategoryPage({ params }: Props) {
@@ -26,70 +25,18 @@ export default async function CategoryPage({ params }: Props) {
   if (!category) notFound();
 
   const courses = await listCourses({ categorySlug: slug });
-  const Icon = resolveCategoryIcon(category.icon ?? category.slug);
-  const emoji = resolveCategoryEmoji(category.slug);
 
   return (
     <>
-      <section className="border-b border-canvas-border bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-          <Link
-            href="/categories"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" strokeWidth={2} aria-hidden />
-            Toutes les catégories
-          </Link>
+      <JsonLd data={buildCategoryJsonLd(category, courses.length)} />
 
-          {category.imageUrl ? (
-            <div
-              className="mt-6 aspect-[21/9] w-full max-w-3xl overflow-hidden rounded-card bg-cover bg-center sm:aspect-[3/1]"
-              style={{ backgroundImage: `url(${category.imageUrl})` }}
-              role="img"
-              aria-label={category.name}
-            />
-          ) : null}
-
-          <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-card bg-brand-50 text-2xl text-brand-600">
-              {emoji ?? <Icon className="h-7 w-7" strokeWidth={2} aria-hidden />}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-                Catégorie
-              </p>
-              <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-                {category.name}
-              </h1>
-              {category.description ? (
-                <p className="mt-3 max-w-2xl text-base leading-relaxed text-ink-muted">
-                  {category.description}
-                </p>
-              ) : null}
-              <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-ink-muted">
-                <BookOpen className="h-4 w-4 text-brand-600" strokeWidth={2} aria-hidden />
-                {courses.length} formation{courses.length > 1 ? "s" : ""} disponible
-                {courses.length > 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/inscription"
-              className="inline-flex h-11 items-center justify-center rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700"
-            >
-              Accéder pour 2 000 FCFA
-            </Link>
-            <Link
-              href="/tarifs"
-              className="inline-flex h-11 items-center justify-center rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50"
-            >
-              Voir l&apos;offre
-            </Link>
-          </div>
-        </div>
-      </section>
+      <CategoryHero
+        category={category}
+        courseCount={courses.length}
+        backHref="/categories"
+        backLabel="Toutes les catégories"
+        showDefaultActions
+      />
 
       <section className="bg-canvas py-12 sm:py-16">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">

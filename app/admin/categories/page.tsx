@@ -27,7 +27,7 @@ export default async function AdminCategoriesPage({
       >
         <input type="hidden" name="returnTo" value="/admin/categories" />
         <h2 className="font-display font-semibold text-ink sm:col-span-2">Ajouter une catégorie</h2>
-        <ImageUploadField label="Photo / bannière de la catégorie" />
+        <ImageUploadField label="Photo / bannière de la catégorie" subjectLabel="nouvelle catégorie" />
         <input
           name="name"
           placeholder="Nom"
@@ -88,6 +88,7 @@ export default async function AdminCategoriesPage({
                 </div>
                 <ImageUploadField
                   label="Photo / bannière de la catégorie"
+                  subjectLabel={cat.name}
                   currentUrl={cat.imageUrl}
                 />
                 <input

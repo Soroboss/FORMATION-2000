@@ -295,6 +295,7 @@ export default async function AdminFormationDetailPage({
         </label>
         <ImageUploadField
           label="Photo / bannière de la formation"
+          subjectLabel={course.title}
           currentUrl={course.thumbnailUrl}
           hint="Cliquez pour importer une image depuis votre appareil. Sinon YouTube peut fournir une vignette auto."
         />

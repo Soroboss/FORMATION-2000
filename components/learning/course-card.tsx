@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Clock, PlayCircle } from "lucide-react";
 import type { CourseListItem } from "@/types/catalog";
+import { CoverImage } from "@/components/media/cover-image";
+import { coverImageAlt } from "@/lib/media/cover-image";
 import { LevelBadge } from "@/components/brand/level-badge";
 import { cn } from "@/lib/utils";
 
@@ -27,16 +29,16 @@ export function CourseCard({
       )}
     >
       <Link href={href} className="block">
-        <div
-          className="aspect-[16/9] bg-gradient-to-br from-brand-600 via-brand-500 to-action-500 bg-cover bg-center"
-          style={
-            course.thumbnailUrl
-              ? { backgroundImage: `url(${course.thumbnailUrl})` }
-              : undefined
-          }
-          role="img"
-          aria-label={course.title}
-        />
+        {course.thumbnailUrl ? (
+          <CoverImage
+            src={course.thumbnailUrl}
+            alt={coverImageAlt(course.title, "course")}
+            variant="card"
+            overlay="bottom"
+          />
+        ) : (
+          <div className="aspect-[16/9] bg-gradient-to-br from-brand-600 via-brand-500 to-action-500" />
+        )}
       </Link>
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium">

@@ -24,6 +24,8 @@ describe("CSP / security headers", () => {
     expect(csp).toContain("object-src 'none'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("2ipa33bu.eu-central.insforge.app");
+    expect(csp).toContain("https://cdn.insforge.dev");
+    expect(csp).toMatch(/img-src[^;]*cdn\.insforge\.dev/);
   });
 
   it("expose les en-têtes de sécurité attendus", () => {

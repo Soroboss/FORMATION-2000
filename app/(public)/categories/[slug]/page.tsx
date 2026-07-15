@@ -41,6 +41,15 @@ export default async function CategoryPage({ params }: Props) {
             Toutes les catégories
           </Link>
 
+          {category.imageUrl ? (
+            <div
+              className="mt-6 aspect-[21/9] w-full max-w-3xl overflow-hidden rounded-card bg-cover bg-center sm:aspect-[3/1]"
+              style={{ backgroundImage: `url(${category.imageUrl})` }}
+              role="img"
+              aria-label={category.name}
+            />
+          ) : null}
+
           <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start">
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-card bg-brand-50 text-2xl text-brand-600">
               {emoji ?? <Icon className="h-7 w-7" strokeWidth={2} aria-hidden />}

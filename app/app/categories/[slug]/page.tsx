@@ -25,7 +25,15 @@ export default async function AppCategoryPage({
 
   return (
     <section className="space-y-6">
-      <div className="ui-card p-5 sm:p-6">
+      <div className="ui-card overflow-hidden p-5 sm:p-6">
+        {category.imageUrl ? (
+          <div
+            className="-mx-5 -mt-5 mb-5 aspect-[21/9] bg-cover bg-center sm:-mx-6 sm:-mt-6"
+            style={{ backgroundImage: `url(${category.imageUrl})` }}
+            role="img"
+            aria-label={category.name}
+          />
+        ) : null}
         <div className="flex items-start gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-soft bg-brand-50 text-brand-600">
             <Icon className="h-6 w-6" strokeWidth={2} aria-hidden />

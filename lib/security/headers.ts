@@ -26,13 +26,32 @@ export function buildContentSecurityPolicy(input?: {
     }
   }
 
+  // Host InsForge = souvent sous-domaine multi-niveaux (ex. app.eu-central.insforge.app).
+  // CSP `*.insforge.app` ne couvre qu’un seul niveau → inclure l’origine exacte pour les images.
   const connectSrc = [
     "'self'",
     appOrigin !== "'self'" ? appOrigin : null,
     insforgeOrigin || null,
     "https://*.insforge.app",
+    "https://*.eu-central.insforge.app",
     "https://vitals.vercel-insights.com",
     "https://va.vercel-scripts.com",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const imgSrc = [
+    "'self'",
+    "data:",
+    "blob:",
+    "https://i.ytimg.com",
+    "https://img.youtube.com",
+    insforgeOrigin || null,
+    "https://*.insforge.app",
+    "https://*.eu-central.insforge.app",
+    // Les objets storage InsForge redirigent vers ce CDN public.
+    "https://cdn.insforge.dev",
+    "https://vercel.live",
   ]
     .filter(Boolean)
     .join(" ");
@@ -43,7 +62,7 @@ export function buildContentSecurityPolicy(input?: {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "img-src 'self' data: blob: https://i.ytimg.com https://img.youtube.com https://*.insforge.app https://vercel.live",
+    `img-src ${imgSrc}`,
     "font-src 'self' data:",
     "style-src 'self' 'unsafe-inline'",
     // Next.js + Analytics require inline/eval in practice for App Router chunks.

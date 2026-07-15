@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "i.ytimg.com" },
       { protocol: "https", hostname: "img.youtube.com" },
       { protocol: "https", hostname: "**.insforge.app" },
+      { protocol: "https", hostname: "cdn.insforge.dev" },
     ],
   },
   async headers() {

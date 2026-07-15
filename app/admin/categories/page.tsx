@@ -1,6 +1,8 @@
 import { saveCategoryAction } from "@/server/actions/admin-catalog";
 import { listAdminCategories } from "@/server/repositories/admin-catalog";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
 
 export default async function AdminCategoriesPage({
@@ -15,26 +17,10 @@ export default async function AdminCategoriesPage({
     <section className="space-y-6">
       <AdminPageHeader
         title="Catégories"
-        description="Organisation du catalogue visible côté apprenant. Ajoutez une image de couverture (URL)."
+        description="Organisation du catalogue visible côté apprenant. Importez une image de couverture."
       />
 
-      {flash.error ? (
-        <div
-          role="alert"
-          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
-        >
-          {flash.error}
-        </div>
-      ) : null}
-      {flash.ok ? (
-        <div
-          role="status"
-          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-        >
-          {flash.ok}
-        </div>
-      ) : null}
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <form
         action={saveCategoryAction}
         className="ui-card grid gap-3 p-5 sm:grid-cols-2 sm:p-6"
@@ -63,12 +49,7 @@ export default async function AdminCategoriesPage({
           defaultValue={categories.length + 1}
           className="rounded-soft border border-canvas-border px-3 py-2 text-sm text-ink"
         />
-        <input
-          name="imageUrl"
-          type="url"
-          placeholder="URL image de couverture"
-          className="rounded-soft border border-canvas-border px-3 py-2 text-sm text-ink sm:col-span-2"
-        />
+        <ImageUploadField label="Image de couverture (bannière)" />
         <textarea
           name="description"
           placeholder="Description"
@@ -105,14 +86,10 @@ export default async function AdminCategoriesPage({
                     label={cat.isActive ? "Active" : "Inactive"}
                   />
                 </div>
-                {cat.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cat.imageUrl}
-                    alt=""
-                    className="h-24 w-full rounded-soft object-cover sm:col-span-2"
-                  />
-                ) : null}
+                <ImageUploadField
+                  label="Image de couverture (bannière)"
+                  currentUrl={cat.imageUrl}
+                />
                 <input
                   name="name"
                   defaultValue={cat.name}
@@ -135,13 +112,6 @@ export default async function AdminCategoriesPage({
                   type="number"
                   defaultValue={cat.sortOrder}
                   className="rounded-soft border border-canvas-border px-3 py-2 text-sm"
-                />
-                <input
-                  name="imageUrl"
-                  type="url"
-                  defaultValue={cat.imageUrl ?? ""}
-                  placeholder="URL couverture"
-                  className="rounded-soft border border-canvas-border px-3 py-2 text-sm sm:col-span-2"
                 />
                 <textarea
                   name="description"

@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth/session";
 import {
+  errorMessage,
+  redirectWithFlash,
+  rethrowRedirect,
+  safeReturnPath,
+} from "@/lib/action-feedback";
+import {
   addSupportMessage,
   createSupportTicket,
   getSupportTicketForUser,
@@ -22,51 +28,78 @@ const replySchema = z.object({
 });
 
 export async function createSupportTicketAction(formData: FormData): Promise<void> {
-  const session = await requireSession();
-  const parsed = ticketSchema.safeParse({
-    subject: String(formData.get("subject") ?? ""),
-    category: String(formData.get("category") ?? "") || undefined,
-    message: String(formData.get("message") ?? ""),
-  });
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+  const back = safeReturnPath(String(formData.get("returnTo") ?? "").trim(), "/app/support");
+  try {
+    const session = await requireSession();
+    const parsed = ticketSchema.safeParse({
+      subject: String(formData.get("subject") ?? ""),
+      category: String(formData.get("category") ?? "") || undefined,
+      message: String(formData.get("message") ?? ""),
+    });
+    if (!parsed.success) {
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
+    }
+    const ticket = await createSupportTicket({
+      userId: session.user.id,
+      ...parsed.data,
+    });
+    revalidatePath("/app/support");
+    redirect(`/app/support/${ticket.id}?ok=${encodeURIComponent("Ticket créé")}`);
+  } catch (error) {
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
-  const ticket = await createSupportTicket({
-    userId: session.user.id,
-    ...parsed.data,
-  });
-  revalidatePath("/app/support");
-  redirect(`/app/support/${ticket.id}`);
 }
 
 export async function replySupportTicketAsLearnerAction(formData: FormData): Promise<void> {
-  const session = await requireSession();
-  const parsed = replySchema.safeParse({
-    ticketId: String(formData.get("ticketId") ?? ""),
-    message: String(formData.get("message") ?? ""),
-  });
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+  const ticketId = String(formData.get("ticketId") ?? "").trim();
+  const back = safeReturnPath(
+    String(formData.get("returnTo") ?? "").trim(),
+    ticketId ? `/app/support/${ticketId}` : "/app/support",
+  );
+  try {
+    const session = await requireSession();
+    const parsed = replySchema.safeParse({
+      ticketId,
+      message: String(formData.get("message") ?? ""),
+    });
+    if (!parsed.success) {
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
+    }
+
+    const ticket = await getSupportTicketForUser({
+      ticketId: parsed.data.ticketId,
+      userId: session.user.id,
+    });
+    if (!ticket) {
+      redirectWithFlash(back, "error", "Ticket introuvable");
+    }
+    if (ticket.status === "closed") {
+      redirectWithFlash(back, "error", "Ce ticket est fermé");
+    }
+
+    await addSupportMessage({
+      ticketId: parsed.data.ticketId,
+      senderId: session.user.id,
+      message: parsed.data.message,
+      isInternal: false,
+    });
+
+    revalidatePath(`/app/support/${parsed.data.ticketId}`);
+    revalidatePath("/app/support");
+    revalidatePath(`/admin/support/${parsed.data.ticketId}`);
+    revalidatePath("/admin/support");
+    redirectWithFlash(back, "ok", "Message envoyé");
+  } catch (error) {
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
-
-  const ticket = await getSupportTicketForUser({
-    ticketId: parsed.data.ticketId,
-    userId: session.user.id,
-  });
-  if (!ticket) throw new Error("Ticket introuvable");
-  if (ticket.status === "closed") {
-    throw new Error("Ce ticket est fermé");
-  }
-
-  await addSupportMessage({
-    ticketId: parsed.data.ticketId,
-    senderId: session.user.id,
-    message: parsed.data.message,
-    isInternal: false,
-  });
-
-  revalidatePath(`/app/support/${parsed.data.ticketId}`);
-  revalidatePath("/app/support");
-  revalidatePath(`/admin/support/${parsed.data.ticketId}`);
-  revalidatePath("/admin/support");
 }

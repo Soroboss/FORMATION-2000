@@ -10,13 +10,19 @@ import {
 } from "@/server/repositories/manual-payments";
 import { listActivePlans } from "@/server/repositories/payments";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 
 export const metadata: Metadata = {
   title: "Paiement Mobile Money",
   robots: { index: false, follow: false },
 };
 
-export default async function PaiementManuelPage() {
+export default async function PaiementManuelPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const session = await getSession();
   if (!session) redirect("/connexion?next=/paiement/manuel");
 
@@ -46,6 +52,7 @@ export default async function PaiementManuelPage() {
 
   return (
     <section className="mx-auto max-w-lg space-y-6 px-4 py-12 sm:px-6">
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="font-display text-2xl font-semibold text-slate-900">
           Paiement Mobile Money
@@ -106,6 +113,7 @@ export default async function PaiementManuelPage() {
       >
         <h2 className="font-semibold text-slate-900">Déclarer mon paiement</h2>
         <input type="hidden" name="planSlug" value={plan?.slug ?? "acces-mensuel"} />
+        <input type="hidden" name="returnTo" value="/paiement/manuel" />
         <label className="block text-sm">
           <span className="font-medium">Numéro qui a payé</span>
           <input

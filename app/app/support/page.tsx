@@ -4,8 +4,14 @@ import { createSupportTicketAction } from "@/server/actions/support";
 import { getSession } from "@/lib/auth/session";
 import { listSupportTicketsForUser } from "@/server/repositories/support";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 
-export default async function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const session = await getSession();
   if (!session) {
     redirect("/connexion?next=/app/tableau-de-bord");
@@ -14,6 +20,7 @@ export default async function SupportPage() {
 
   return (
     <section className="space-y-6">
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="ui-card p-5 sm:p-6">
         <h1 className="font-display text-2xl font-bold text-ink">Support</h1>
         <p className="mt-1 text-sm text-ink-muted">
@@ -27,6 +34,7 @@ export default async function SupportPage() {
       </div>
 
       <form action={createSupportTicketAction} className="ui-card space-y-3 p-5 sm:p-6">
+        <input type="hidden" name="returnTo" value="/app/support" />
         <label className="block text-sm">
           <span className="font-medium text-ink">Sujet</span>
           <input

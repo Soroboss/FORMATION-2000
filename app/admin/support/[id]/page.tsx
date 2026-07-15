@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import { ActionFlash } from "@/components/ui/action-flash";
 import {
   replySupportTicketAction,
   updateSupportTicketAction,
@@ -23,10 +24,13 @@ function ticketStatusLabel(status: string): string {
 
 export default async function AdminSupportTicketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const { id } = await params;
+  const flash = await searchParams;
   const ticket = await getSupportTicketForStaff(id);
   if (!ticket) notFound();
 
@@ -38,7 +42,7 @@ export default async function AdminSupportTicketPage({
         title={ticket.subject}
         description={`Ticket ${ticketStatusLabel(ticket.status)}${ticket.category ? ` · ${ticket.category}` : ""}`}
       />
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="flex flex-wrap gap-3 text-sm">
         <Link href="/admin/support" className="font-medium text-brand-600 hover:underline">
           ← Liste
@@ -55,6 +59,7 @@ export default async function AdminSupportTicketPage({
 
       <form action={updateSupportTicketAction} className="ui-card flex flex-wrap items-end gap-2 p-4">
         <input type="hidden" name="ticketId" value={ticket.id} />
+        <input type="hidden" name="returnTo" value={`/admin/support/${ticket.id}`} />
         <label className="text-sm">
           <span className="mb-1 block text-ink-muted">Statut</span>
           <select
@@ -99,6 +104,7 @@ export default async function AdminSupportTicketPage({
 
       <form action={replySupportTicketAction} className="ui-card space-y-3 p-5">
         <input type="hidden" name="ticketId" value={ticket.id} />
+        <input type="hidden" name="returnTo" value={`/admin/support/${ticket.id}`} />
         <label className="block text-sm">
           <span className="font-medium text-ink">Répondre à l&apos;apprenant</span>
           <textarea

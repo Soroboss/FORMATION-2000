@@ -16,6 +16,8 @@ import {
   nextLessonSortOrder,
 } from "@/server/repositories/admin-catalog";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
+import { ImageUploadField } from "@/components/admin/image-upload-field";
 import { StatusBadge } from "@/components/admin/ui";
 import { accessTypeLabel, courseStatusLabel, lessonTypeLabel } from "@/lib/admin/labels";
 
@@ -54,22 +56,7 @@ export default async function AdminFormationDetailPage({
 
   return (
     <section className="space-y-8">
-      {flash.error ? (
-        <div
-          role="alert"
-          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
-        >
-          {flash.error}
-        </div>
-      ) : null}
-      {flash.ok ? (
-        <div
-          role="status"
-          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-        >
-          {flash.ok}
-        </div>
-      ) : null}
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="ui-card p-5 sm:p-6">
         <Link href="/admin/formations" className="text-sm font-semibold text-brand-600 hover:underline">
           ← Formations
@@ -306,24 +293,11 @@ export default async function AdminFormationDetailPage({
             Laissez vide s’il n’y a aucun outil particulier. Une ligne = un outil.
           </span>
         </label>
-        <label className="block text-sm">
-          <span className="font-medium">Image de couverture (URL)</span>
-          <input
-            name="thumbnailUrl"
-            type="url"
-            defaultValue={course.thumbnailUrl ?? ""}
-            placeholder="https://… (sinon prise auto depuis YouTube)"
-            className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-          />
-          {course.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={course.thumbnailUrl}
-              alt=""
-              className="mt-2 h-28 w-full max-w-sm rounded-soft object-cover"
-            />
-          ) : null}
-        </label>
+        <ImageUploadField
+          label="Image de couverture (bannière)"
+          currentUrl={course.thumbnailUrl}
+          hint="Importez une image depuis votre appareil. Sinon, YouTube pourra fournir une vignette automatiquement."
+        />
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm">
             <span className="font-medium">Catégorie</span>

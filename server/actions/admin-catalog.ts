@@ -30,6 +30,11 @@ import {
 import type { CourseStatus } from "@/types/catalog";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import {
+  getImageFileFromFormData,
+  uploadAdminMediaImage,
+  type MediaFolder,
+} from "@/lib/storage/media";
 
 function formString(fd: FormData, key: string) {
   return String(fd.get(key) ?? "").trim();
@@ -43,6 +48,22 @@ function formBool(fd: FormData, key: string) {
 function safeReturnTo(value: string, fallback: string): string {
   if (value.startsWith("/admin") && !value.startsWith("//")) return value;
   return fallback;
+}
+
+/** Upload fichier prioritaire, sinon URL collée, sinon URL existante. */
+async function resolveImageUrl(
+  formData: FormData,
+  folder: MediaFolder,
+): Promise<string | undefined> {
+  const file = getImageFileFromFormData(formData, "imageFile");
+  if (file) {
+    const uploaded = await uploadAdminMediaImage(file, folder);
+    return uploaded.url;
+  }
+  const pasted = formString(formData, "imageUrl") || formString(formData, "thumbnailUrl");
+  if (pasted) return pasted;
+  const existing = formString(formData, "existingImageUrl");
+  return existing || undefined;
 }
 
 function revalidateCoursePaths(course: { id: string; slug: string }) {
@@ -59,12 +80,13 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
   const back = safeReturnTo(formString(formData, "returnTo"), "/admin/categories");
   try {
     const session = await requireCatalogWriteSession();
+    const imageUrl = await resolveImageUrl(formData, "categories");
     const parsed = categoryUpsertSchema.safeParse({
       name: formString(formData, "name"),
       slug: formString(formData, "slug") || undefined,
       description: formString(formData, "description"),
       icon: formString(formData, "icon"),
-      imageUrl: formString(formData, "imageUrl"),
+      imageUrl: imageUrl ?? "",
       sortOrder: formString(formData, "sortOrder") || 0,
       isActive: formBool(formData, "isActive"),
     });
@@ -89,7 +111,7 @@ export async function saveCategoryAction(formData: FormData): Promise<void> {
       action: id ? "category.update" : "category.create",
       entityType: "category",
       entityId: category.id,
-      newValues: { name: category.name, slug: category.slug },
+      newValues: { name: category.name, slug: category.slug, imageUrl: category.imageUrl },
     });
     revalidatePath("/admin/categories");
     revalidatePath("/formations");
@@ -110,6 +132,7 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
     : safeReturnTo(formString(formData, "returnTo"), "/admin/formations");
   try {
     const session = await requireCatalogWriteSession();
+    const thumbnailUrl = await resolveImageUrl(formData, "courses");
     const parsed = courseUpsertSchema.safeParse({
       title: formString(formData, "title"),
       slug: formString(formData, "slug") || undefined,
@@ -118,7 +141,7 @@ export async function saveCourseAction(formData: FormData): Promise<void> {
       learningOutcomes: formString(formData, "learningOutcomes"),
       requiredTools: formString(formData, "requiredTools"),
       finalProjectDescription: formString(formData, "finalProjectDescription"),
-      thumbnailUrl: formString(formData, "thumbnailUrl"),
+      thumbnailUrl: thumbnailUrl ?? "",
       categoryId: formString(formData, "categoryId") || undefined,
       level: formString(formData, "level") || undefined,
       accessType: formString(formData, "accessType") || "subscription",

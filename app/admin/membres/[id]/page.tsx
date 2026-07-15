@@ -18,6 +18,7 @@ import {
   ROLE_DESCRIPTIONS,
 } from "@/lib/permissions/roles";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { StatusBadge } from "@/components/admin/ui";
 import { memberStatusLabel, roleLabel, subscriptionStatusLabel } from "@/lib/admin/labels";
 
@@ -26,10 +27,10 @@ export default async function AdminMembreDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ created?: string; access?: string }>;
+  searchParams: Promise<{ created?: string; access?: string; ok?: string; error?: string }>;
 }) {
   const { id } = await params;
-  const { created, access } = await searchParams;
+  const { created, access, ok, error } = await searchParams;
   const [member, session] = await Promise.all([getMember(id), getSession()]);
   if (!member) notFound();
 
@@ -45,6 +46,7 @@ export default async function AdminMembreDetailPage({
 
   return (
     <section className="space-y-6">
+      <ActionFlash ok={ok} error={error} />
       <div className="ui-card p-5 sm:p-6">
         <Link href="/admin/membres" className="text-sm font-semibold text-brand-600 hover:underline">
           ← Membres
@@ -148,6 +150,7 @@ export default async function AdminMembreDetailPage({
             className="grid gap-3 border-t border-canvas-border pt-4 sm:grid-cols-[120px_1fr_auto]"
           >
             <input type="hidden" name="userId" value={member.id} />
+            <input type="hidden" name="returnTo" value={`/admin/membres/${member.id}`} />
             <label className="block text-sm">
               <span className="font-medium text-ink">Jours</span>
               <input
@@ -183,6 +186,7 @@ export default async function AdminMembreDetailPage({
           className="ui-card flex flex-wrap items-end gap-3 p-5 sm:p-6"
         >
           <input type="hidden" name="userId" value={member.id} />
+          <input type="hidden" name="returnTo" value={`/admin/membres/${member.id}`} />
           <label className="text-sm">
             <span className="font-medium">Statut du compte</span>
             <select
@@ -224,6 +228,7 @@ export default async function AdminMembreDetailPage({
           <>
             <form action={assignRoleAction} className="flex flex-wrap gap-2 border-t border-canvas-border pt-4">
               <input type="hidden" name="userId" value={member.id} />
+              <input type="hidden" name="returnTo" value={`/admin/membres/${member.id}`} />
               <select name="roleKey" className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                 {assignable.map((role) => (
                   <option key={role} value={role}>
@@ -238,6 +243,7 @@ export default async function AdminMembreDetailPage({
             {removable.length > 0 ? (
               <form action={removeRoleAction} className="flex flex-wrap gap-2">
                 <input type="hidden" name="userId" value={member.id} />
+                <input type="hidden" name="returnTo" value={`/admin/membres/${member.id}`} />
                 <select name="roleKey" className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
                   {removable.map((role) => (
                     <option key={role} value={role}>

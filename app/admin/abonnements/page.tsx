@@ -2,10 +2,16 @@ import Link from "next/link";
 import { extendSubscriptionAction } from "@/server/actions/admin-ops";
 import { listAdminSubscriptions } from "@/server/repositories/admin-payments";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
 import { subscriptionStatusLabel } from "@/lib/admin/labels";
 
-export default async function AdminAbonnementsPage() {
+export default async function AdminAbonnementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const subscriptions = await listAdminSubscriptions();
 
   return (
@@ -14,7 +20,7 @@ export default async function AdminAbonnementsPage() {
         title="Abonnements"
         description="Liste et prolongation manuelle (30 jours typiques)."
       />
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       {subscriptions.length === 0 ? (
         <AdminEmptyState
           title="Aucun abonnement"
@@ -57,6 +63,7 @@ export default async function AdminAbonnementsPage() {
                   <td className="px-4 py-3">
                     <form action={extendSubscriptionAction} className="flex items-center gap-2">
                       <input type="hidden" name="subscriptionId" value={sub.id} />
+                      <input type="hidden" name="returnTo" value="/admin/abonnements" />
                       <input
                         name="days"
                         type="number"

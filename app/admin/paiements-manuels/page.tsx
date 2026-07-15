@@ -5,9 +5,15 @@ import {
 } from "@/server/actions/manual-payments";
 import { listPendingManualPaymentRequests } from "@/server/repositories/manual-payments";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { AdminEmptyState, AdminPageHeader } from "@/components/admin/ui";
 
-export default async function AdminPaiementsManuelsPage() {
+export default async function AdminPaiementsManuelsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const pending = await listPendingManualPaymentRequests();
 
   return (
@@ -16,7 +22,7 @@ export default async function AdminPaiementsManuelsPage() {
         title="Paiements WhatsApp"
         description="Vérifiez la capture, puis approuvez pour activer 30 jours d’accès."
       />
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       {pending.length === 0 ? (
         <AdminEmptyState
           title="Aucune demande en attente"
@@ -80,6 +86,7 @@ export default async function AdminPaiementsManuelsPage() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <form action={approveManualPaymentAction} className="space-y-2">
                   <input type="hidden" name="id" value={req.id} />
+                  <input type="hidden" name="returnTo" value="/admin/paiements-manuels" />
                   <input
                     name="reviewNote"
                     placeholder="Note d'approbation (optionnel)"
@@ -91,6 +98,7 @@ export default async function AdminPaiementsManuelsPage() {
                 </form>
                 <form action={rejectManualPaymentAction} className="space-y-2">
                   <input type="hidden" name="id" value={req.id} />
+                  <input type="hidden" name="returnTo" value="/admin/paiements-manuels" />
                   <input
                     name="reviewNote"
                     placeholder="Motif du refus"

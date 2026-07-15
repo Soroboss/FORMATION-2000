@@ -6,8 +6,14 @@ import {
 } from "@/server/actions/notifications";
 import { getSession } from "@/lib/auth/session";
 import { listNotificationsForUser } from "@/server/repositories/notifications";
+import { ActionFlash } from "@/components/ui/action-flash";
 
-export default async function NotificationsPage() {
+export default async function NotificationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const session = await getSession();
   if (!session) {
     redirect("/connexion?next=/app/notifications");
@@ -18,6 +24,7 @@ export default async function NotificationsPage() {
 
   return (
     <section className="space-y-6">
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="ui-card flex flex-wrap items-start justify-between gap-4 p-5 sm:p-6">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Notifications</h1>
@@ -29,6 +36,7 @@ export default async function NotificationsPage() {
         </div>
         {unread > 0 ? (
           <form action={markAllNotificationsReadAction}>
+            <input type="hidden" name="returnTo" value="/app/notifications" />
             <button
               type="submit"
               className="inline-flex h-10 items-center rounded-brand border border-canvas-border px-4 text-sm font-semibold text-ink hover:bg-canvas"
@@ -73,6 +81,7 @@ export default async function NotificationsPage() {
                 {!n.readAt ? (
                   <form action={markNotificationReadAction}>
                     <input type="hidden" name="notificationId" value={n.id} />
+                    <input type="hidden" name="returnTo" value="/app/notifications" />
                     <button
                       type="submit"
                       className="text-sm font-semibold text-brand-600 hover:underline"

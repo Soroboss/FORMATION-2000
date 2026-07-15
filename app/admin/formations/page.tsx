@@ -3,6 +3,7 @@ import { listAdminCourses, listAdminCategories } from "@/server/repositories/adm
 import { deleteCourseAction, publishCourseAction } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { BulkCreateFormationsForm } from "@/components/admin/bulk-create-formations-form";
 import { accessTypeLabel, courseStatusLabel } from "@/lib/admin/labels";
 
@@ -34,22 +35,7 @@ export default async function AdminFormationsPage({
         }
       />
 
-      {error ? (
-        <div
-          role="alert"
-          className="rounded-soft border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800"
-        >
-          {error}
-        </div>
-      ) : null}
-      {ok ? (
-        <div
-          role="status"
-          className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
-        >
-          {ok}
-        </div>
-      ) : null}
+      <ActionFlash ok={ok} error={error} />
 
       {createdCount > 0 ? (
         <p className="rounded-soft border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">

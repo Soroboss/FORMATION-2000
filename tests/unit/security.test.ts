@@ -6,6 +6,7 @@ import {
 } from "@/lib/security/rate-limit";
 import { redactSecrets } from "@/lib/observability/log";
 import { safeInternalPath } from "@/lib/utils";
+import { safeReturnPath } from "@/lib/action-feedback";
 import {
   mustVerifyEmailForLearnerApp,
   readEmailVerifiedFlag,
@@ -75,6 +76,16 @@ describe("redactSecrets", () => {
     expect(redacted.token).toBe("[redacted]");
     expect(redacted.ok).toBe("visible");
     expect((redacted.nested as Record<string, unknown>).api_key).toBe("[redacted]");
+  });
+});
+
+describe("safeReturnPath", () => {
+  it("autorise les chemins internes sûrs", () => {
+    expect(safeReturnPath("/admin/membres", "/admin")).toBe("/admin/membres");
+    expect(safeReturnPath("/app/support", "/app")).toBe("/app/support");
+    expect(safeReturnPath("/paiement/manuel", "/paiement")).toBe("/paiement/manuel");
+    expect(safeReturnPath("//evil.com", "/admin")).toBe("/admin");
+    expect(safeReturnPath("https://evil.com", "/admin")).toBe("/admin");
   });
 });
 

@@ -27,6 +27,7 @@ import {
   type ManualPaymentConfig,
 } from "@/lib/payments/manual-config";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
 import { roleLabel } from "@/lib/admin/labels";
 
@@ -70,6 +71,7 @@ function SettingField({
 
       <form action={updateSettingAction} className="mt-3 space-y-2">
         <input type="hidden" name="key" value={setting.key} />
+        <input type="hidden" name="returnTo" value="/admin/parametres" />
         {meta.kind === "number" ? (
           <div className="flex items-center gap-2">
             <input
@@ -132,6 +134,7 @@ function ManualPaymentForm({
 
   return (
     <form action={updateManualPaymentConfigAction} className="space-y-5">
+      <input type="hidden" name="returnTo" value="/admin/parametres" />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <label className="flex items-center gap-2 text-sm font-medium text-ink">
           <input type="checkbox" name="enabled" defaultChecked={config.enabled} />
@@ -259,7 +262,12 @@ function ManualPaymentForm({
   );
 }
 
-export default async function AdminParametresPage() {
+export default async function AdminParametresPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const [settings, staff, roleMatrix, session] = await Promise.all([
     listSettings(),
     listStaffMembers(),
@@ -285,7 +293,7 @@ export default async function AdminParametresPage() {
           </Link>
         }
       />
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <section className="ui-card space-y-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

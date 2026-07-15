@@ -2,10 +2,16 @@ import Link from "next/link";
 import { reviewSubmissionAction } from "@/server/actions/admin-ops";
 import { listSubmissions } from "@/server/repositories/admin-learning";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
 import { submissionStatusLabel } from "@/lib/admin/labels";
 
-export default async function AdminProjetsPage() {
+export default async function AdminProjetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; error?: string }>;
+}) {
+  const flash = await searchParams;
   const submissions = await listSubmissions();
 
   return (
@@ -14,7 +20,7 @@ export default async function AdminProjetsPage() {
         title="Exercices & projets"
         description="Revue des livrables soumis par les apprenants."
       />
-
+      <ActionFlash ok={flash.ok} error={flash.error} />
       {submissions.length === 0 ? (
         <AdminEmptyState
           title="Aucune soumission"
@@ -56,6 +62,7 @@ export default async function AdminProjetsPage() {
                 className="mt-4 grid gap-2 md:grid-cols-2 lg:grid-cols-4"
               >
                 <input type="hidden" name="submissionId" value={s.id} />
+                <input type="hidden" name="returnTo" value="/admin/projets" />
                 <select
                   name="status"
                   defaultValue="approved"

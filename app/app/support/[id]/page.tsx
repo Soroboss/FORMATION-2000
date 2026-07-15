@@ -7,17 +7,21 @@ import {
   listSupportMessages,
 } from "@/server/repositories/support";
 import { Button } from "@/components/ui/button";
+import { ActionFlash } from "@/components/ui/action-flash";
 
 export default async function SupportTicketPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
   const session = await getSession();
   if (!session) {
     redirect("/connexion?next=/app/support");
   }
   const { id } = await params;
+  const flash = await searchParams;
   const ticket = await getSupportTicketForUser({
     ticketId: id,
     userId: session.user.id,
@@ -29,6 +33,7 @@ export default async function SupportTicketPage({
 
   return (
     <section className="space-y-6">
+      <ActionFlash ok={flash.ok} error={flash.error} />
       <div className="ui-card p-5 sm:p-6">
         <Link href="/app/support" className="text-sm font-medium text-brand-600 hover:underline">
           ← Retour au support
@@ -61,6 +66,7 @@ export default async function SupportTicketPage({
       {canReply ? (
         <form action={replySupportTicketAsLearnerAction} className="ui-card space-y-3 p-5 sm:p-6">
           <input type="hidden" name="ticketId" value={ticket.id} />
+          <input type="hidden" name="returnTo" value={`/app/support/${ticket.id}`} />
           <label className="block text-sm">
             <span className="font-medium text-ink">Votre réponse</span>
             <textarea

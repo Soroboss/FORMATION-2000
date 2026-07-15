@@ -5,7 +5,7 @@ export const categoryUpsertSchema = z.object({
   slug: z.string().trim().min(2).max(120).optional(),
   description: z.string().trim().max(2000).optional().or(z.literal("")),
   icon: z.string().trim().max(40).optional().or(z.literal("")),
-  imageUrl: z.string().trim().max(1000).optional().or(z.literal("")),
+  imageUrl: z.string().trim().max(2000).optional().or(z.literal("")),
   sortOrder: z.coerce.number().int().min(0).default(0),
   isActive: z.coerce.boolean().default(true),
 });
@@ -18,7 +18,7 @@ export const courseUpsertSchema = z.object({
   learningOutcomes: z.string().trim().max(5000).optional().or(z.literal("")),
   requiredTools: z.string().trim().max(5000).optional().or(z.literal("")),
   finalProjectDescription: z.string().trim().max(5000).optional().or(z.literal("")),
-  thumbnailUrl: z.string().trim().max(1000).optional().or(z.literal("")),
+  thumbnailUrl: z.string().trim().max(2000).optional().or(z.literal("")),
   categoryId: z.string().uuid().optional().or(z.literal("")),
   level: z.enum(["beginner", "intermediate", "advanced"]).optional().or(z.literal("")),
   accessType: z.enum(["free", "subscription", "purchase"]).default("subscription"),

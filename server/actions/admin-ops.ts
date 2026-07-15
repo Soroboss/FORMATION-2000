@@ -1,10 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { requireAdminSession } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/write";
+import {
+  errorMessage,
+  redirectWithFlash,
+  rethrowRedirect,
+  safeReturnPath,
+} from "@/lib/action-feedback";
 import {
   assignRoleSchema,
   activateLearnerAccessSchema,
@@ -44,17 +48,26 @@ function formString(fd: FormData, key: string) {
 }
 
 export async function updateMemberStatusAction(formData: FormData): Promise<void> {
+  const userId = formString(formData, "userId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    userId ? `/admin/membres/${userId}` : "/admin/membres",
+  );
   try {
     const session = await requireAdminSession();
     if (!canManageMemberRoles(session.roles)) {
-      throw new Error("Permission insuffisante pour modifier le statut d’un membre.");
+      redirectWithFlash(back, "error", "Permission insuffisante pour modifier le statut.");
     }
     const parsed = memberStatusSchema.safeParse({
-      userId: formString(formData, "userId"),
+      userId,
       status: formString(formData, "status"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     await updateMemberStatus(parsed.data.userId, parsed.data.status);
     await writeAuditLog({
@@ -67,21 +80,31 @@ export async function updateMemberStatusAction(formData: FormData): Promise<void
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
     revalidatePath("/admin/parametres");
-    return;
+    redirectWithFlash(back, "ok", "Statut membre mis à jour");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function assignRoleAction(formData: FormData): Promise<void> {
+  const userId = formString(formData, "userId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    userId ? `/admin/membres/${userId}` : "/admin/membres",
+  );
   try {
     const session = await requireAdminSession();
     const parsed = assignRoleSchema.safeParse({
-      userId: formString(formData, "userId"),
+      userId,
       roleKey: formString(formData, "roleKey"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     const roleKey = parsed.data.roleKey as RoleKey;
     assertCanAssignRole(session.roles, roleKey);
@@ -96,21 +119,31 @@ export async function assignRoleAction(formData: FormData): Promise<void> {
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
     revalidatePath("/admin/parametres");
-    return;
+    redirectWithFlash(back, "ok", "Rôle attribué");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function removeRoleAction(formData: FormData): Promise<void> {
+  const userId = formString(formData, "userId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    userId ? `/admin/membres/${userId}` : "/admin/membres",
+  );
   try {
     const session = await requireAdminSession();
     const parsed = assignRoleSchema.safeParse({
-      userId: formString(formData, "userId"),
+      userId,
       roleKey: formString(formData, "roleKey"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     const roleKey = parsed.data.roleKey as RoleKey;
     assertCanAssignRole(session.roles, roleKey);
@@ -118,7 +151,11 @@ export async function removeRoleAction(formData: FormData): Promise<void> {
     if (roleKey === "super_admin") {
       const count = await countUsersWithRole("super_admin");
       if (count <= 1) {
-        throw new Error("Impossible de retirer le dernier super administrateur.");
+        redirectWithFlash(
+          back,
+          "error",
+          "Impossible de retirer le dernier super administrateur.",
+        );
       }
     }
 
@@ -133,9 +170,10 @@ export async function removeRoleAction(formData: FormData): Promise<void> {
     revalidatePath("/admin/membres");
     revalidatePath(`/admin/membres/${parsed.data.userId}`);
     revalidatePath("/admin/parametres");
-    return;
+    redirectWithFlash(back, "ok", "Rôle retiré");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
@@ -212,6 +250,7 @@ export async function inviteCollaboratorAction(
 }
 
 export async function extendSubscriptionAction(formData: FormData): Promise<void> {
+  const back = safeReturnPath(formString(formData, "returnTo"), "/admin/abonnements");
   try {
     const session = await requireAdminSession();
     const parsed = extendSubscriptionSchema.safeParse({
@@ -219,7 +258,11 @@ export async function extendSubscriptionAction(formData: FormData): Promise<void
       days: formString(formData, "days") || 30,
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     const sub = await extendSubscription(parsed.data.subscriptionId, parsed.data.days);
     await writeAuditLog({
@@ -230,9 +273,10 @@ export async function extendSubscriptionAction(formData: FormData): Promise<void
       newValues: { days: parsed.data.days, endsAt: sub.endsAt },
     });
     revalidatePath("/admin/abonnements");
-    return;
+    redirectWithFlash(back, "ok", "Abonnement prolongé");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
@@ -241,20 +285,33 @@ export async function extendSubscriptionAction(formData: FormData): Promise<void
  * (paiement reçu hors plateforme, faveur, test, etc.).
  */
 export async function activateLearnerAccessAction(formData: FormData): Promise<void> {
+  const userId = formString(formData, "userId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    userId ? `/admin/membres/${userId}` : "/admin/membres",
+  );
   try {
     const session = await requireAdminSession();
     const parsed = activateLearnerAccessSchema.safeParse({
-      userId: formString(formData, "userId"),
+      userId,
       days: formString(formData, "days") || 30,
       note: formString(formData, "note"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
 
     const plan = await getPlanBySlug("acces-mensuel");
     if (!plan) {
-      throw new Error("Plan « acces-mensuel » introuvable. Vérifiez la migration des plans.");
+      redirectWithFlash(
+        back,
+        "error",
+        "Plan « acces-mensuel » introuvable. Vérifiez la migration des plans.",
+      );
     }
 
     const subscription = await activateOrExtendSubscription({
@@ -294,14 +351,19 @@ export async function activateLearnerAccessAction(formData: FormData): Promise<v
     revalidatePath("/admin/abonnements");
     revalidatePath("/app");
     revalidatePath("/app/notifications");
-    redirect(`/admin/membres/${parsed.data.userId}?access=1`);
+    redirectWithFlash(
+      `/admin/membres/${parsed.data.userId}`,
+      "ok",
+      "Accès apprenant activé / prolongé",
+    );
   } catch (error) {
-    if (isRedirectError(error)) throw error;
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function reviewSubmissionAction(formData: FormData): Promise<void> {
+  const back = safeReturnPath(formString(formData, "returnTo"), "/admin/projets");
   try {
     const session = await requireAdminSession();
     const parsed = reviewSubmissionSchema.safeParse({
@@ -311,7 +373,11 @@ export async function reviewSubmissionAction(formData: FormData): Promise<void> 
       reviewComment: formString(formData, "reviewComment"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     const submission = await reviewSubmission({
       submissionId: parsed.data.submissionId,
@@ -352,21 +418,31 @@ export async function reviewSubmissionAction(formData: FormData): Promise<void> 
     revalidatePath("/admin/projets");
     revalidatePath("/app/projets");
     revalidatePath("/app/notifications");
-    return;
+    redirectWithFlash(back, "ok", `Exercice ${statusLabel}`);
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function updateSupportTicketAction(formData: FormData): Promise<void> {
+  const ticketId = formString(formData, "ticketId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    ticketId ? `/admin/support/${ticketId}` : "/admin/support",
+  );
   try {
     const session = await requireAdminSession();
     const parsed = updateSupportTicketSchema.safeParse({
-      ticketId: formString(formData, "ticketId"),
+      ticketId,
       status: formString(formData, "status"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     const result = await updateSupportTicketStatus({
       ticketId: parsed.data.ticketId,
@@ -402,24 +478,33 @@ export async function updateSupportTicketAction(formData: FormData): Promise<voi
     revalidatePath("/app/support");
     revalidatePath(`/app/support/${parsed.data.ticketId}`);
     revalidatePath("/app/notifications");
-    return;
+    redirectWithFlash(back, "ok", "Statut du ticket mis à jour");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function replySupportTicketAction(formData: FormData): Promise<void> {
+  const ticketId = formString(formData, "ticketId");
+  const back = safeReturnPath(
+    formString(formData, "returnTo"),
+    ticketId ? `/admin/support/${ticketId}` : "/admin/support",
+  );
   try {
     const session = await requireAdminSession();
-    const ticketId = formString(formData, "ticketId");
     const message = formString(formData, "message").trim();
     if (!ticketId || message.length < 2) {
-      throw new Error("Message trop court");
+      redirectWithFlash(back, "error", "Message trop court");
     }
-    if (message.length > 5000) throw new Error("Message trop long");
+    if (message.length > 5000) {
+      redirectWithFlash(back, "error", "Message trop long");
+    }
 
     const ticket = await getSupportTicketForStaff(ticketId);
-    if (!ticket) throw new Error("Ticket introuvable");
+    if (!ticket) {
+      redirectWithFlash(back, "error", "Ticket introuvable");
+    }
 
     const { addSupportMessage } = await import("@/server/repositories/support");
     await addSupportMessage({
@@ -460,13 +545,15 @@ export async function replySupportTicketAction(formData: FormData): Promise<void
     revalidatePath("/app/support");
     revalidatePath(`/app/support/${ticketId}`);
     revalidatePath("/app/notifications");
-    return;
+    redirectWithFlash(back, "ok", "Réponse envoyée");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function updateSettingAction(formData: FormData): Promise<void> {
+  const back = safeReturnPath(formString(formData, "returnTo"), "/admin/parametres");
   try {
     const session = await requireAdminSession();
     const parsed = settingUpdateSchema.safeParse({
@@ -474,7 +561,11 @@ export async function updateSettingAction(formData: FormData): Promise<void> {
       value: formString(formData, "value"),
     });
     if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? "Données invalides");
+      redirectWithFlash(
+        back,
+        "error",
+        parsed.error.issues[0]?.message ?? "Données invalides",
+      );
     }
     await updateSetting(parsed.data.key, parsed.data.value, session.user.id);
     await writeAuditLog({
@@ -485,13 +576,15 @@ export async function updateSettingAction(formData: FormData): Promise<void> {
     });
     revalidatePath("/admin/parametres");
     revalidatePath("/paiement/manuel");
-    return;
+    redirectWithFlash(back, "ok", "Paramètre enregistré");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }
 
 export async function updateManualPaymentConfigAction(formData: FormData): Promise<void> {
+  const back = safeReturnPath(formString(formData, "returnTo"), "/admin/parametres");
   try {
     const session = await requireAdminSession();
     const contacts = [0, 1, 2]
@@ -511,10 +604,10 @@ export async function updateManualPaymentConfigAction(formData: FormData): Promi
     };
 
     if (!value.whatsappMessage) {
-      throw new Error("Le message WhatsApp est requis");
+      redirectWithFlash(back, "error", "Le message WhatsApp est requis");
     }
     if (!value.instructions) {
-      throw new Error("Les consignes de paiement sont requises");
+      redirectWithFlash(back, "error", "Les consignes de paiement sont requises");
     }
 
     await updateSetting("manual_payment.config", value, session.user.id);
@@ -527,8 +620,9 @@ export async function updateManualPaymentConfigAction(formData: FormData): Promi
     });
     revalidatePath("/admin/parametres");
     revalidatePath("/paiement/manuel");
-    return;
+    redirectWithFlash(back, "ok", "Paiement manuel mis à jour");
   } catch (error) {
-    throw error instanceof Error ? error : new Error(String(error));
+    rethrowRedirect(error);
+    redirectWithFlash(back, "error", errorMessage(error));
   }
 }

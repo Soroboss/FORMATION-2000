@@ -1,4 +1,5 @@
 import { getAdminDbClient } from "@/lib/admin/client";
+import { tryCreateInsForgeServiceClient } from "@/lib/insforge/server";
 
 export type AuditEntry = {
   id: string;
@@ -10,7 +11,8 @@ export type AuditEntry = {
 };
 
 export async function writeAuditLog(input: {
-  actorUserId: string;
+  /** Null pour actions système / API agent (clé service). */
+  actorUserId: string | null;
   action: string;
   entityType?: string;
   entityId?: string;
@@ -18,7 +20,8 @@ export async function writeAuditLog(input: {
   newValues?: Record<string, unknown> | null;
 }): Promise<void> {
   try {
-    const client = await getAdminDbClient();
+    const service = tryCreateInsForgeServiceClient();
+    const client = service ?? (await getAdminDbClient());
     await client.database.from("audit_logs").insert({
       actor_user_id: input.actorUserId,
       action: input.action,

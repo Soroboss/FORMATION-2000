@@ -55,20 +55,25 @@ export function middleware(request: NextRequest) {
   const isAdminApi = pathname.startsWith("/api/admin");
   const isProgressApi = pathname.startsWith("/api/progress");
   const isCronApi = pathname.startsWith("/api/cron");
+  const isAgentApi = pathname.startsWith("/api/agent");
   const isProtectedApi = isAdminApi || isProgressApi;
 
-  if (isAuthPage || isSensitiveApi || isProtectedApi || isCronApi) {
+  if (isAuthPage || isSensitiveApi || isProtectedApi || isCronApi || isAgentApi) {
     const shouldLimit =
-      isSensitiveApi || isProtectedApi || isCronApi || request.method !== "GET";
+      isSensitiveApi ||
+      isProtectedApi ||
+      isCronApi ||
+      isAgentApi ||
+      request.method !== "GET";
     if (shouldLimit) {
-      const limit = isCronApi ? 20 : isSensitiveApi || isProtectedApi ? 60 : 30;
+      const limit = isCronApi || isAgentApi ? 20 : isSensitiveApi || isProtectedApi ? 60 : 30;
       const result = checkRateLimit({
         key: `${pathname}:${request.method}:${ip}`,
         limit,
         windowMs: 60_000,
       });
       if (!result.allowed) {
-        if (isSensitiveApi || isProtectedApi || isCronApi) {
+        if (isSensitiveApi || isProtectedApi || isCronApi || isAgentApi) {
           return rateLimitedJson(requestId);
         }
         const res = new NextResponse("Trop de requêtes. Réessayez dans une minute.", {
@@ -121,5 +126,6 @@ export const config = {
     "/api/admin/:path*",
     "/api/progress/:path*",
     "/api/cron/:path*",
+    "/api/agent/:path*",
   ],
 };

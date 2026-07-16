@@ -8,7 +8,7 @@ import {
   buildCategoryJsonLd,
   buildCategoryMetadata,
 } from "@/lib/seo/category-metadata";
-import { getCategoryBySlug, listCourses } from "@/server/repositories/catalog";
+import { getCategoryBySlug, listCategoryCoursesRanked } from "@/server/repositories/catalog";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -24,7 +24,7 @@ export default async function CategoryPage({ params }: Props) {
   const category = await getCategoryBySlug(slug);
   if (!category) notFound();
 
-  const courses = await listCourses({ categorySlug: slug });
+  const courses = await listCategoryCoursesRanked(slug);
 
   return (
     <>
@@ -60,7 +60,7 @@ export default async function CategoryPage({ params }: Props) {
               <div className="mb-8">
                 <h2 className="font-display text-2xl font-bold text-ink">Formations</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  Sélectionnez une formation pour voir le parcours et démarrer.
+                  Classées par pertinence — commencez par le haut et suivez le parcours.
                 </p>
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

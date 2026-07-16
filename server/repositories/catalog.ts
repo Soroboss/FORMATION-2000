@@ -7,7 +7,11 @@ import {
   courseMatchesSearchQuery,
   scoreCourseSearchMatch,
 } from "@/lib/catalog/search";
-import { deriveCatalogSections, type CatalogSections } from "@/lib/catalog/sections";
+import {
+  deriveCatalogSections,
+  rankCoursesByRelevance,
+  type CatalogSections,
+} from "@/lib/catalog/sections";
 import type {
   Category,
   CourseDetail,
@@ -521,4 +525,18 @@ export async function getPublicCatalogSections(
     listPopularCourseIds(),
   ]);
   return deriveCatalogSections(all, popularIds, opts);
+}
+
+/**
+ * Formations d’une catégorie classées par pertinence
+ * (mises en avant → les plus suivies → plus récentes).
+ */
+export async function listCategoryCoursesRanked(
+  categorySlug: string,
+): Promise<CourseListItem[]> {
+  const [courses, popularIds] = await Promise.all([
+    listCourses({ categorySlug }),
+    listPopularCourseIds(),
+  ]);
+  return rankCoursesByRelevance(courses, popularIds);
 }

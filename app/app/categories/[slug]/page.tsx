@@ -5,7 +5,7 @@ import { CourseCard } from "@/components/learning/course-card";
 import { CategoryHero } from "@/components/learning/category-hero";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { getCategoryBySlug, listCourses } from "@/server/repositories/catalog";
+import { getCategoryBySlug, listCategoryCoursesRanked } from "@/server/repositories/catalog";
 
 export default async function AppCategoryPage({
   params,
@@ -18,7 +18,7 @@ export default async function AppCategoryPage({
 
   const session = await getSession();
   const [courses, hasPremium] = await Promise.all([
-    listCourses({ categorySlug: slug }),
+    listCategoryCoursesRanked(slug),
     canAccessPremiumContent(session?.user.id),
   ]);
 
@@ -72,10 +72,15 @@ export default async function AppCategoryPage({
           </Link>
         </p>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
-          {courses.map((course) => (
-            <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
-          ))}
+        <div className="space-y-4">
+          <p className="text-sm text-ink-muted">
+            Classées par pertinence — commencez par le haut et suivez le parcours.
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
+            ))}
+          </div>
         </div>
       )}
     </section>

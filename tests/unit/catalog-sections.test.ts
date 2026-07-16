@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { deriveCatalogSections } from "@/lib/catalog/sections";
+import { deriveCatalogSections, rankCoursesByRelevance } from "@/lib/catalog/sections";
 import type { CourseListItem } from "@/types/catalog";
 
 function course(id: string, opts: Partial<CourseListItem> = {}): CourseListItem {
@@ -51,5 +51,37 @@ describe("deriveCatalogSections", () => {
   it("all renvoie tout le catalogue", () => {
     const s = deriveCatalogSections(all);
     expect(s.all).toHaveLength(4);
+  });
+});
+
+describe("rankCoursesByRelevance", () => {
+  it("place les mises en avant en premier", () => {
+    const list = [course("a"), course("b", { isFeatured: true }), course("c")];
+    const ranked = rankCoursesByRelevance(list);
+    expect(ranked[0]!.id).toBe("b");
+  });
+
+  it("départage les non mises en avant par popularité", () => {
+    const list = [course("a"), course("b"), course("c")];
+    const ranked = rankCoursesByRelevance(list, ["c", "a"]);
+    expect(ranked.map((c) => c.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("garde l’ordre d’entrée (récence) quand tout est égal", () => {
+    const list = [course("a"), course("b"), course("c")];
+    const ranked = rankCoursesByRelevance(list, []);
+    expect(ranked.map((c) => c.id)).toEqual(["a", "b", "c"]);
+  });
+
+  it("combine mise en avant puis popularité", () => {
+    const list = [
+      course("a"),
+      course("b", { isFeatured: true }),
+      course("c", { isFeatured: true }),
+      course("d"),
+    ];
+    // c plus populaire que b ; d plus populaire que a
+    const ranked = rankCoursesByRelevance(list, ["c", "d"]);
+    expect(ranked.map((x) => x.id)).toEqual(["c", "b", "d", "a"]);
   });
 });

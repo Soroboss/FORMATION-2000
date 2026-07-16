@@ -13,12 +13,14 @@ const OPTIMIZABLE_EXACT_HOSTS = new Set([
   "cdn.insforge.dev",
 ]);
 
-export type CoverImageVariant = "card" | "hero" | "banner";
+export type CoverImageVariant = "card" | "hero" | "banner" | "fill" | "thumb";
 
 export const COVER_IMAGE_SIZES: Record<CoverImageVariant, string> = {
   card: "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw",
   hero: "(max-width: 768px) 100vw, (max-width: 1280px) 80vw, 960px",
   banner: "100vw",
+  fill: "(max-width: 640px) 100vw, 400px",
+  thumb: "(max-width: 640px) 40vw, 160px",
 };
 
 export function canOptimizeImageUrl(url: string | null | undefined): url is string {

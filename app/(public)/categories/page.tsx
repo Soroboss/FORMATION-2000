@@ -86,7 +86,7 @@ export default async function CategoriesPage() {
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {categories.map((category, index) => (
                   <CategoryCard
                     key={category.id}

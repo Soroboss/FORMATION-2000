@@ -2,9 +2,15 @@ import Link from "next/link";
 import { CatalogSearchForm } from "@/components/learning/catalog-search-form";
 import { CategoryCard } from "@/components/learning/category-card";
 import { CourseCard } from "@/components/learning/course-card";
+import { CourseRail } from "@/components/learning/course-rail";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { listCategories, listCourses, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
+import {
+  getPublicCatalogSections,
+  listCategories,
+  listCourses,
+  countPublishedCoursesByCategory,
+} from "@/server/repositories/catalog";
 import type { CourseLevel } from "@/types/catalog";
 
 export default async function AppCataloguePage({
@@ -23,17 +29,18 @@ export default async function AppCataloguePage({
       ? (params.level as CourseLevel)
       : undefined;
 
-  const [categories, courses, courseCountByCategory] = await Promise.all([
+  const query = params.q?.trim() || undefined;
+  const isBrowsing = !query && !level;
+
+  const [categories, courseCountByCategory, sections, filtered] = await Promise.all([
     listCategories(),
-    listCourses({
-      q: params.q?.trim() || undefined,
-      level,
-    }),
     countPublishedCoursesByCategory(),
+    isBrowsing ? getPublicCatalogSections() : Promise.resolve(null),
+    isBrowsing ? Promise.resolve([]) : listCourses({ q: query, level }),
   ]);
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-10">
       <div className="ui-card p-5 sm:p-6">
         <h1 className="font-display text-2xl font-bold text-ink">Catalogue</h1>
         <p className="mt-1 text-sm text-ink-muted">
@@ -60,54 +67,90 @@ export default async function AppCataloguePage({
         ) : null}
       </div>
 
-      {categories.length > 0 && !params.q && !level ? (
-        <div className="space-y-4">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="font-display text-xl font-bold text-ink">Catégories</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {categories.map((category, index) => (
-              <CategoryCard
-                key={category.id}
-                category={category}
-                hrefBase="/app/categories"
-                index={index}
-                courseCount={courseCountByCategory[category.id] ?? 0}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
-
-      <div className="space-y-4">
-        <h2 className="font-display text-xl font-bold text-ink">Formations</h2>
+      <div className="space-y-3">
         <CatalogSearchForm
           action="/app/catalogue"
           defaultQuery={params.q ?? ""}
           defaultLevel={params.level ?? ""}
         />
-
-        {courses.length === 0 ? (
-          <p className="ui-card p-5 text-sm text-ink-muted">
-            {params.q
-              ? `Aucune formation ne correspond à « ${params.q} ». Essayez un autre mot-clé (titre, thème, outil…).`
-              : "Aucune formation trouvée."}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {params.q ? (
-              <p className="text-sm text-ink-muted">
-                {courses.length} résultat{courses.length > 1 ? "s" : ""} pour « {params.q} »
-              </p>
-            ) : null}
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-              {courses.map((course) => (
-                <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
-              ))}
-            </div>
-          </div>
-        )}
       </div>
+
+      {isBrowsing && sections ? (
+        <>
+          {categories.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-end justify-between gap-3">
+                <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">Catégories</h2>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {categories.map((category, index) => (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    hrefBase="/app/categories"
+                    index={index}
+                    courseCount={courseCountByCategory[category.id] ?? 0}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {sections.all.length === 0 ? (
+            <p className="ui-card p-5 text-sm text-ink-muted">Aucune formation trouvée.</p>
+          ) : (
+            <>
+              <CourseRail
+                eyebrow="À la une"
+                title="Formations mises en avant"
+                courses={sections.featured}
+                hrefBase="/app/formations"
+              />
+              <CourseRail
+                eyebrow="Nouveautés"
+                title="Dernières formations"
+                courses={sections.newest}
+                hrefBase="/app/formations"
+              />
+              <CourseRail
+                eyebrow="Populaires"
+                title="Les plus suivies"
+                courses={sections.popular}
+                hrefBase="/app/formations"
+              />
+
+              <div className="space-y-4">
+                <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
+                  Tout le catalogue
+                </h2>
+                <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                  {sections.all.map((course) => (
+                    <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      ) : filtered.length === 0 ? (
+        <p className="ui-card p-5 text-sm text-ink-muted">
+          {query
+            ? `Aucune formation ne correspond à « ${query} ». Essayez un autre mot-clé (titre, thème, outil…).`
+            : "Aucune formation trouvée."}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-ink-muted">
+            {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
+            {query ? ` pour « ${query} »` : ""}
+          </p>
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((course) => (
+              <CourseCard key={course.id} course={course} hrefBase="/app/formations" />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

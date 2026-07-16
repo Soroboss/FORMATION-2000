@@ -10,6 +10,9 @@ const ASPECT_CLASS: Record<CoverImageVariant, string> = {
   card: "aspect-[16/9]",
   hero: "aspect-[21/9] sm:aspect-[3/1]",
   banner: "aspect-[21/9] min-h-[12rem] sm:min-h-[16rem]",
+  // `fill`/`thumb` : la hauteur est contrôlée par le parent.
+  fill: "h-full w-full",
+  thumb: "h-full w-full",
 };
 
 type CoverImageOverlay = "none" | "bottom" | "hero";

@@ -1,9 +1,13 @@
-import { tryCreateInsForgeServerClient } from "@/lib/insforge/server";
+import {
+  tryCreateInsForgeServerClient,
+  tryCreateInsForgeServiceClient,
+} from "@/lib/insforge/server";
 import { getAccessToken } from "@/lib/auth/cookies";
 import {
   courseMatchesSearchQuery,
   scoreCourseSearchMatch,
 } from "@/lib/catalog/search";
+import { deriveCatalogSections, type CatalogSections } from "@/lib/catalog/sections";
 import type {
   Category,
   CourseDetail,
@@ -480,4 +484,41 @@ export async function getLessonAppPath(lessonId: string): Promise<string | null>
   if (!course) return null;
 
   return `/app/formations/${String((course as { slug: string }).slug)}/lecons/${lessonId}`;
+}
+
+/**
+ * Ordre décroissant de popularité (nombre d’inscriptions par formation).
+ * Utilise la clé service (agrégat cross-users). Renvoie [] si indisponible.
+ */
+export async function listPopularCourseIds(): Promise<string[]> {
+  const service = tryCreateInsForgeServiceClient();
+  if (!service) return [];
+  try {
+    const { data } = await service.database.from("enrollments").select("course_id");
+    if (!Array.isArray(data)) return [];
+    const counts = new Map<string, number>();
+    for (const row of data) {
+      const id = (row as { course_id?: string | null }).course_id;
+      if (!id) continue;
+      counts.set(String(id), (counts.get(String(id)) ?? 0) + 1);
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => id);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Catalogue prêt pour l’affichage en sections (À la une / Nouveautés / Populaires / Tout).
+ */
+export async function getPublicCatalogSections(
+  opts: { featuredLimit?: number; newestLimit?: number; popularLimit?: number } = {},
+): Promise<CatalogSections> {
+  const [all, popularIds] = await Promise.all([
+    listCourses({}),
+    listPopularCourseIds(),
+  ]);
+  return deriveCatalogSections(all, popularIds, opts);
 }

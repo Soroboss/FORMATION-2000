@@ -41,20 +41,21 @@ export function CategoryCard({
         className,
       )}
     >
-      <div className="relative">
+      {/* Bandeau slim : compact, pas de grande zone image. */}
+      <div className="relative h-20 w-full sm:h-24">
         {category.imageUrl ? (
           <CoverImage
             src={category.imageUrl}
             alt={coverImageAlt(category.name, "category")}
-            variant="card"
+            variant="fill"
             overlay="bottom"
           />
         ) : (
-          <div className="aspect-[16/9] bg-gradient-to-br from-brand-600 via-brand-500 to-action-500" />
+          <div className="h-full w-full bg-gradient-to-br from-brand-600 via-brand-500 to-action-500" />
         )}
         <span
           className={cn(
-            "absolute bottom-3 left-3 flex h-11 w-11 items-center justify-center rounded-soft text-lg shadow-md ring-2",
+            "absolute -bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-soft text-base shadow-md ring-2 ring-white",
             accent.wrap,
           )}
           aria-hidden
@@ -63,29 +64,27 @@ export function CategoryCard({
         </span>
       </div>
 
-      <div className="relative flex flex-1 flex-col p-5">
-        <span className={cn("absolute inset-y-0 left-0 w-1", accent.bar)} aria-hidden />
-        <div className="pl-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Catégorie</p>
-          <h3 className="mt-1 font-display text-xl font-semibold text-ink group-hover:text-brand-700">
+      <div className="flex flex-1 flex-col px-4 pb-4 pt-6">
+        <div className="flex items-center gap-2">
+          <h3 className="font-display text-base font-semibold text-ink group-hover:text-brand-700">
             {category.name}
           </h3>
-          {category.description ? (
-            <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-ink-muted">
-              {category.description}
-            </p>
-          ) : null}
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <span className="text-xs font-medium text-ink-muted">{countLabel ?? "Explorer"}</span>
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600">
-              Voir
-              <ArrowRight
-                className="h-4 w-4 transition group-hover:translate-x-0.5"
-                strokeWidth={2}
-                aria-hidden
-              />
-            </span>
-          </div>
+        </div>
+        {category.description ? (
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-muted">
+            {category.description}
+          </p>
+        ) : null}
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-canvas-border pt-3">
+          <span className="text-xs font-medium text-ink-muted">{countLabel ?? "Explorer"}</span>
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600">
+            Voir
+            <ArrowRight
+              className="h-3.5 w-3.5 transition group-hover:translate-x-0.5"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </span>
         </div>
       </div>
     </Link>

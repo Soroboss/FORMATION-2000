@@ -47,6 +47,37 @@ const STAT_TONE: Record<Tone, string> = {
   action: "bg-action-50 text-action-700",
 };
 
+type BadgeTone = Tone | "neutral" | "danger";
+
+const BADGE_TONE: Record<BadgeTone, string> = {
+  neutral: "bg-canvas text-ink-muted",
+  brand: "bg-brand-50 text-brand-700",
+  progress: "bg-progress-50 text-progress-700",
+  action: "bg-action-50 text-action-700",
+  danger: "bg-danger-50 text-danger-700",
+};
+
+type StatusBadgeProps = {
+  label: string;
+  tone?: BadgeTone;
+  className?: string;
+};
+
+/** Pastille de statut colorée (paiements, projets, support…). */
+export function StatusBadge({ label, tone = "neutral", className }: StatusBadgeProps) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize",
+        BADGE_TONE[tone],
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
 type StatCardProps = {
   label: string;
   value: ReactNode;

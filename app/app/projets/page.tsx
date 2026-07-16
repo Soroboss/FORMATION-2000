@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClipboardList, ExternalLink } from "lucide-react";
+import { PageHeader, StatCard, StatusBadge } from "@/components/app/page-header";
 import { submissionStatusLabel } from "@/lib/admin/labels";
 import { getSession } from "@/lib/auth/session";
 import { listSubmissionsForUser } from "@/server/repositories/learning";
+
+function statusTone(status: string): "brand" | "progress" | "action" | "danger" | "neutral" {
+  const s = status.toLowerCase();
+  if (["approved", "validated", "reviewed", "graded"].includes(s)) return "progress";
+  if (["submitted", "pending", "in_review"].includes(s)) return "action";
+  if (["rejected", "needs_changes"].includes(s)) return "danger";
+  if (s === "draft") return "neutral";
+  return "brand";
+}
 
 export default async function ProjetsPage() {
   const session = await getSession();
@@ -11,21 +22,25 @@ export default async function ProjetsPage() {
   }
 
   const submissions = await listSubmissionsForUser(session.user.id);
+  const reviewed = submissions.filter((s) =>
+    ["approved", "validated", "reviewed", "graded"].includes(s.status.toLowerCase()),
+  ).length;
 
   return (
     <section className="space-y-6">
-      <div className="ui-card p-5 sm:p-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Exercices & projets</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Suivez vos soumissions et le retour des formateurs. Pour déposer un nouveau livrable,
-          ouvrez la leçon concernée.
-        </p>
-      </div>
+      <PageHeader
+        icon={ClipboardList}
+        title="Exercices & projets"
+        subtitle="Suivez vos soumissions et le retour des formateurs. Pour déposer un livrable, ouvrez la leçon concernée."
+      />
 
       {submissions.length === 0 ? (
-        <div className="ui-card border-dashed p-6 text-center">
+        <div className="ui-card border-dashed p-6 text-center sm:p-8">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+            <ClipboardList className="h-6 w-6" strokeWidth={2} aria-hidden />
+          </span>
           <p className="font-display font-semibold text-ink">Aucune soumission pour le moment</p>
-          <p className="mt-2 text-sm text-ink-muted">
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
             Ouvrez une formation, puis une leçon avec exercice pour déposer votre travail.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-3">
@@ -44,44 +59,50 @@ export default async function ProjetsPage() {
           </div>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {submissions.map((s) => {
-            const lessonHref =
-              s.courseSlug && s.lessonId
-                ? `/app/formations/${s.courseSlug}/lecons/${s.lessonId}`
-                : null;
-            return (
-              <li key={s.id} className="ui-card space-y-2 p-4 sm:p-5">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <h2 className="font-semibold text-ink">{s.assignmentTitle}</h2>
-                  <span className="rounded-soft bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700">
-                    {submissionStatusLabel(s.status)}
-                  </span>
-                </div>
-                <p className="text-xs text-ink-muted">
-                  {s.submittedAt
-                    ? `Soumis le ${new Date(s.submittedAt).toLocaleString("fr-FR")}`
-                    : "Brouillon"}
-                  {s.score != null ? ` · Note ${s.score}/100` : ""}
-                </p>
-                {s.reviewComment ? (
-                  <p className="rounded-soft bg-canvas p-3 text-sm text-ink">
-                    <span className="font-semibold">Retour : </span>
-                    {s.reviewComment}
+        <>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatCard label="Soumissions" value={submissions.length} hint="au total" />
+            <StatCard label="Corrigées" value={reviewed} tone="progress" hint="avec retour formateur" />
+          </div>
+
+          <ul className="space-y-3">
+            {submissions.map((s) => {
+              const lessonHref =
+                s.courseSlug && s.lessonId
+                  ? `/app/formations/${s.courseSlug}/lecons/${s.lessonId}`
+                  : null;
+              return (
+                <li key={s.id} className="ui-card space-y-3 p-4 sm:p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h2 className="font-semibold text-ink">{s.assignmentTitle}</h2>
+                    <StatusBadge label={submissionStatusLabel(s.status)} tone={statusTone(s.status)} />
+                  </div>
+                  <p className="text-xs text-ink-muted">
+                    {s.submittedAt
+                      ? `Soumis le ${new Date(s.submittedAt).toLocaleString("fr-FR")}`
+                      : "Brouillon"}
+                    {s.score != null ? ` · Note ${s.score}/100` : ""}
                   </p>
-                ) : null}
-                {lessonHref ? (
-                  <Link
-                    href={lessonHref}
-                    className="inline-block text-sm font-semibold text-brand-600 hover:underline"
-                  >
-                    Ouvrir la leçon
-                  </Link>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+                  {s.reviewComment ? (
+                    <div className="rounded-soft border-l-4 border-progress-400 bg-progress-50/50 p-3 text-sm text-ink">
+                      <span className="font-semibold">Retour formateur : </span>
+                      {s.reviewComment}
+                    </div>
+                  ) : null}
+                  {lessonHref ? (
+                    <Link
+                      href={lessonHref}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline"
+                    >
+                      <ExternalLink className="h-4 w-4" strokeWidth={2} aria-hidden />
+                      Ouvrir la leçon
+                    </Link>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </section>
   );

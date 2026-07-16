@@ -27,7 +27,7 @@ const NOTIF_VISUAL: Record<string, { icon: LucideIcon; badge: string }> = {
   support_update: { icon: LifeBuoy, badge: "bg-brand-50 text-brand-600" },
   support_reply: { icon: MessageCircle, badge: "bg-brand-50 text-brand-600" },
   payment_approved: { icon: CheckCircle2, badge: "bg-progress-50 text-progress-600" },
-  payment_rejected: { icon: XCircle, badge: "bg-red-50 text-red-600" },
+  payment_rejected: { icon: XCircle, badge: "bg-danger-50 text-danger-700" },
 };
 
 function visualFor(type: string) {

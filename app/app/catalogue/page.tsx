@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { CreditCard, LayoutGrid, Lock } from "lucide-react";
 import { CatalogSearchForm } from "@/components/learning/catalog-search-form";
 import { CategoryCard } from "@/components/learning/category-card";
 import { CourseCard } from "@/components/learning/course-card";
 import { CourseRail } from "@/components/learning/course-rail";
+import { PageHeader } from "@/components/app/page-header";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import {
@@ -41,31 +43,44 @@ export default async function AppCataloguePage({
 
   return (
     <section className="space-y-10">
-      <div className="ui-card p-5 sm:p-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Catalogue</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Parcourez les catégories, choisissez une formation, puis{" "}
-          {hasPremium
-            ? "commencez une leçon pour l’ajouter à Mes formations."
-            : "activez l’abonnement pour débloquer les leçons premium."}
-        </p>
-        {!hasPremium ? (
-          <div className="mt-4 flex flex-wrap gap-3">
+      <PageHeader
+        icon={LayoutGrid}
+        title="Catalogue"
+        subtitle={
+          hasPremium
+            ? "Parcourez les catégories, choisissez une formation, puis commencez une leçon pour l’ajouter à Mes formations."
+            : "Parcourez les catégories et choisissez une formation. Activez l’abonnement pour débloquer les leçons premium."
+        }
+      />
+
+      {!hasPremium ? (
+        <div className="ui-card flex flex-col gap-3 border-action-200 bg-action-50/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-soft bg-action-500 text-white">
+              <Lock className="h-4 w-4" strokeWidth={2} aria-hidden />
+            </span>
+            <p className="text-sm text-ink-muted">
+              <span className="font-semibold text-ink">2 000 FCFA / 30 jours</span> pour
+              débloquer toutes les leçons premium.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
             <Link
               href="/paiement"
-              className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+              className="inline-flex h-10 items-center gap-2 rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
             >
-              S&apos;abonner — 2 000 FCFA
+              <CreditCard className="h-4 w-4" strokeWidth={2} aria-hidden />
+              S&apos;abonner
             </Link>
             <Link
               href="/paiement/manuel"
-              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-white"
             >
-              Paiement WhatsApp
+              WhatsApp / Mobile Money
             </Link>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         <CatalogSearchForm

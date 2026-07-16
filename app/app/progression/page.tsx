@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Compass } from "lucide-react";
+import { Compass, TrendingUp } from "lucide-react";
+import { CoverImage } from "@/components/media/cover-image";
+import { PageHeader, StatCard } from "@/components/app/page-header";
+import { coverImageAlt } from "@/lib/media/cover-image";
 import { getSession } from "@/lib/auth/session";
 import { getCourseById } from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
@@ -12,40 +15,36 @@ export default async function ProgressionPage() {
   }
 
   const enrollments = await listEnrollmentsForUser(session.user.id);
+  const pairs = (
+    await Promise.all(
+      enrollments.map(async (enrollment) => {
+        const course = await getCourseById(enrollment.courseId);
+        return course ? { enrollment, course } : null;
+      }),
+    )
+  ).filter((p): p is NonNullable<typeof p> => p !== null);
+
+  const total = pairs.length;
+  const completed = pairs.filter((p) => p.enrollment.status === "completed").length;
   const global =
-    enrollments.length === 0
+    total === 0
       ? 0
-      : Math.round(
-          (enrollments.reduce((acc, e) => acc + e.progressPercent, 0) / enrollments.length) *
-            100,
-        ) / 100;
+      : Math.round(pairs.reduce((acc, p) => acc + p.enrollment.progressPercent, 0) / total);
 
   return (
     <section className="space-y-6">
-      <div className="ui-card p-5 sm:p-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Progression</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Vue d&apos;ensemble de votre avancement pédagogique.
-        </p>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Progression"
+        subtitle="Vue d’ensemble de votre avancement pédagogique."
+        tone="progress"
+      />
 
-      <div className="ui-card p-6">
-        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">
-          Progression globale
-        </p>
-        <p className="mt-2 font-display text-4xl font-bold text-ink">{global}%</p>
-        <p className="mt-1 text-sm text-ink-muted">
-          Moyenne sur {enrollments.length} formation
-          {enrollments.length > 1 ? "s" : ""} commencée
-          {enrollments.length > 1 ? "s" : ""}.
-        </p>
-      </div>
-
-      {enrollments.length === 0 ? (
-        <div className="ui-card border-dashed p-6 text-center">
+      {total === 0 ? (
+        <div className="ui-card border-dashed p-6 text-center sm:p-8">
           <p className="font-display font-semibold text-ink">Pas encore de progression</p>
-          <p className="mt-2 text-sm text-ink-muted">
-            Explorez une catégorie, payez si besoin, puis commencez une leçon.
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
+            Explorez une catégorie, activez l’accès si besoin, puis commencez une leçon.
           </p>
           <Link
             href="/app/catalogue"
@@ -56,41 +55,80 @@ export default async function ProgressionPage() {
           </Link>
         </div>
       ) : (
-        <ul className="space-y-3">
-          {await Promise.all(
-            enrollments.map(async (enrollment) => {
-              const course = await getCourseById(enrollment.courseId);
+        <>
+          {/* Hero progression globale. */}
+          <div className="ui-card overflow-hidden">
+            <div className="grid gap-6 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+              <div
+                className="relative mx-auto h-28 w-28 shrink-0 rounded-full sm:mx-0"
+                style={{
+                  background: `conic-gradient(var(--progress) ${global * 3.6}deg, var(--border) 0deg)`,
+                }}
+                aria-hidden
+              >
+                <div className="absolute inset-[10px] flex items-center justify-center rounded-full bg-canvas-card">
+                  <span className="font-display text-2xl font-bold text-ink">{global}%</span>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard label="Global" value={`${global}%`} tone="progress" hint="progression moyenne" />
+                <StatCard label="Commencées" value={total} hint="formations actives" />
+                <StatCard label="Terminées" value={completed} tone="action" hint="100 % atteint" />
+              </div>
+            </div>
+          </div>
+
+          {/* Détail par formation. */}
+          <ul className="space-y-3">
+            {pairs.map(({ enrollment, course }) => {
+              const percent = Math.min(100, Math.max(0, Math.round(enrollment.progressPercent)));
+              const done = enrollment.status === "completed";
               return (
-                <li key={enrollment.id} className="ui-card p-4 text-sm">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-ink">
-                      {course?.title ?? enrollment.courseId}
-                    </span>
-                    <span className="font-semibold text-progress-600">
-                      {enrollment.progressPercent}%
-                    </span>
+                <li key={enrollment.id} className="ui-card p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-soft">
+                      {course.thumbnailUrl ? (
+                        <CoverImage
+                          src={course.thumbnailUrl}
+                          alt={coverImageAlt(course.title, "course")}
+                          variant="fill"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-brand-600 to-action-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          {course.category?.name ? (
+                            <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                              {course.category.name}
+                            </p>
+                          ) : null}
+                          <p className="truncate font-semibold text-ink">{course.title}</p>
+                        </div>
+                        <span
+                          className={`shrink-0 text-sm font-bold ${done ? "text-action-600" : "text-progress-600"}`}
+                        >
+                          {percent}%
+                        </span>
+                      </div>
+                      <div className="progress-bar mt-2">
+                        <div className="progress-bar-fill" style={{ width: `${percent}%` }} />
+                      </div>
+                      <Link
+                        href={`/app/formations/${course.slug}`}
+                        className="mt-2 inline-block text-xs font-semibold text-brand-600 hover:underline"
+                      >
+                        {done ? "Revoir la formation" : "Continuer"}
+                      </Link>
+                    </div>
                   </div>
-                  <div className="progress-bar mt-3">
-                    <div
-                      className="progress-bar-fill"
-                      style={{
-                        width: `${Math.min(100, Math.max(0, enrollment.progressPercent))}%`,
-                      }}
-                    />
-                  </div>
-                  {course ? (
-                    <Link
-                      href={`/app/formations/${course.slug}`}
-                      className="mt-2 inline-block text-xs font-semibold text-brand-600 hover:underline"
-                    >
-                      Continuer
-                    </Link>
-                  ) : null}
                 </li>
               );
-            }),
-          )}
-        </ul>
+            })}
+          </ul>
+        </>
       )}
     </section>
   );

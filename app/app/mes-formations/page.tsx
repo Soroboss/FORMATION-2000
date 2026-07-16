@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Compass, CreditCard } from "lucide-react";
+import { BookOpen, Compass, CreditCard } from "lucide-react";
 import { CategoryCard } from "@/components/learning/category-card";
+import { EnrollmentProgressCard } from "@/components/learning/continue-learning";
+import { PageHeader, StatCard } from "@/components/app/page-header";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
 import { getCourseById, listCategories, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
@@ -20,24 +22,41 @@ export default async function MesFormationsPage() {
     countPublishedCoursesByCategory(),
   ]);
 
-  const courses = await Promise.all(
-    enrollments.map(async (enrollment) => {
-      const course = await getCourseById(enrollment.courseId);
-      return { enrollment, course };
-    }),
-  );
+  const pairs = (
+    await Promise.all(
+      enrollments.map(async (enrollment) => {
+        const course = await getCourseById(enrollment.courseId);
+        return course ? { enrollment, course } : null;
+      }),
+    )
+  ).filter((p): p is NonNullable<typeof p> => p !== null);
+
+  const total = pairs.length;
+  const completed = pairs.filter((p) => p.enrollment.status === "completed").length;
+  const inProgress = total - completed;
+  const avg =
+    total === 0
+      ? 0
+      : Math.round(pairs.reduce((acc, p) => acc + p.enrollment.progressPercent, 0) / total);
 
   return (
     <section className="space-y-6">
-      <div className="ui-card p-5 sm:p-6">
-        <h1 className="font-display text-2xl font-bold text-ink">Mes formations</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Formations commencées et progression associée. Une formation apparaît ici dès que vous
-          ouvrez une leçon accessible.
-        </p>
-      </div>
+      <PageHeader
+        icon={BookOpen}
+        title="Mes formations"
+        subtitle="Vos formations commencées et votre progression. Une formation apparaît ici dès la première leçon ouverte."
+        action={
+          <Link
+            href="/app/catalogue"
+            className="inline-flex h-10 items-center gap-2 rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+          >
+            <Compass className="h-4 w-4" strokeWidth={2} aria-hidden />
+            Catalogue
+          </Link>
+        }
+      />
 
-      {courses.length === 0 ? (
+      {total === 0 ? (
         <div className="space-y-6">
           <div className="ui-card border-dashed p-6 text-center sm:p-8">
             <p className="font-display text-lg font-semibold text-ink">
@@ -69,8 +88,8 @@ export default async function MesFormationsPage() {
           </div>
 
           {categories.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {categories.slice(0, 4).map((category, index) => (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {categories.slice(0, 6).map((category, index) => (
                 <CategoryCard
                   key={category.id}
                   category={category}
@@ -83,39 +102,27 @@ export default async function MesFormationsPage() {
           ) : null}
         </div>
       ) : (
-        <ul className="space-y-3">
-          {courses.map(({ enrollment, course }) => (
-            <li key={enrollment.id} className="ui-card p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="font-display font-semibold text-ink">
-                    {course?.title ?? "Formation"}
-                  </h2>
-                  <p className="mt-1 text-xs text-ink-muted">
-                    <span className="font-semibold text-progress-600">
-                      {enrollment.progressPercent}%
-                    </span>{" "}
-                    · {enrollment.status}
-                  </p>
-                </div>
-                {course ? (
-                  <Link
-                    href={`/app/formations/${course.slug}`}
-                    className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-                  >
-                    Continuer
-                  </Link>
-                ) : null}
-              </div>
-              <div className="progress-bar mt-3">
-                <div
-                  className="progress-bar-fill"
-                  style={{ width: `${enrollment.progressPercent}%` }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <StatCard label="Formations" value={total} hint="dans votre espace" />
+            <StatCard label="En cours" value={inProgress} tone="action" hint="à poursuivre" />
+            <StatCard label="Terminées" value={completed} tone="progress" hint={`progression moyenne ${avg}%`} />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pairs.map(({ enrollment, course }) => (
+              <EnrollmentProgressCard
+                key={enrollment.id}
+                title={course.title}
+                categoryName={course.category?.name}
+                thumbnailUrl={course.thumbnailUrl}
+                progressPercent={enrollment.progressPercent}
+                href={`/app/formations/${course.slug}`}
+                isCompleted={enrollment.status === "completed"}
+              />
+            ))}
+          </div>
+        </>
       )}
     </section>
   );

@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import {
-  BookOpen,
-  Compass,
-  CreditCard,
-  Lock,
-  PlayCircle,
-  TrendingUp,
-} from "lucide-react";
+import { Compass, CreditCard, Lock } from "lucide-react";
 import { CategoryCard } from "@/components/learning/category-card";
+import {
+  ContinueLearningHero,
+  EnrollmentProgressCard,
+} from "@/components/learning/continue-learning";
 import { getSession } from "@/lib/auth/session";
 import { canAccessPremiumContent } from "@/lib/subscriptions/access";
-import { getLessonAppPath, listCategories, countPublishedCoursesByCategory } from "@/server/repositories/catalog";
+import {
+  getCourseById,
+  getLessonAppPath,
+  listCategories,
+  countPublishedCoursesByCategory,
+} from "@/server/repositories/catalog";
 import { listEnrollmentsForUser } from "@/server/repositories/learning";
 import { getLatestSubscriptionForUser } from "@/server/repositories/payments";
 
@@ -36,153 +38,158 @@ export default async function TableauDeBordPage() {
       countPublishedCoursesByCategory(),
     ]);
 
-  const hasCourses = enrollments.length > 0;
-  const resumeEnrollment = enrollments.find((e) => e.lastLessonId);
-  const resumePath = resumeEnrollment?.lastLessonId
-    ? await getLessonAppPath(resumeEnrollment.lastLessonId)
+  // Associe chaque inscription à sa formation (titre, image, catégorie).
+  const pairs = (
+    await Promise.all(
+      enrollments.map(async (enrollment) => {
+        const course = await getCourseById(enrollment.courseId);
+        return course ? { enrollment, course } : null;
+      }),
+    )
+  ).filter((p): p is NonNullable<typeof p> => p !== null);
+
+  const hasCourses = pairs.length > 0;
+
+  // Hero = formation la plus récemment active et non terminée (sinon la 1re).
+  const hero =
+    pairs.find((p) => p.enrollment.status !== "completed") ?? pairs[0] ?? null;
+
+  let heroResumeHref = hero ? `/app/formations/${hero.course.slug}` : "/app/catalogue";
+  if (hero?.enrollment.lastLessonId) {
+    const lessonPath = await getLessonAppPath(hero.enrollment.lastLessonId);
+    if (lessonPath) heroResumeHref = lessonPath;
+  }
+
+  const rest = hero ? pairs.filter((p) => p.enrollment.id !== hero.enrollment.id) : [];
+
+  const expiresLabel = subscription?.endsAt
+    ? new Date(subscription.endsAt).toLocaleDateString("fr-FR", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
     : null;
 
   return (
     <section className="space-y-6">
-      <div className="ui-card p-6 sm:p-8">
-        <h1 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-          Bienvenue sur Learnoon Academy
-        </h1>
-        <p className="mt-2 text-sm text-ink-muted sm:text-base">
-          Bonjour, <span className="font-semibold text-ink">{name}</span>.{" "}
-          {hasPremium
-            ? hasCourses
-              ? "Reprenez là où vous vous êtes arrêté, ou explorez une nouvelle catégorie."
-              : "Votre accès premium est actif. Choisissez une formation pour commencer."
-            : "Pour regarder les leçons premium, activez l’abonnement puis choisissez une formation."}
-        </p>
-
-        <dl className="mt-6 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-soft bg-brand-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-brand-700">
-              Rôles
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">
-              {session.roles.join(", ") || "learner"}
-            </dd>
-          </div>
-          <div className="rounded-soft bg-progress-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-progress-700">
-              Abonnement
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">
-              {hasPremium ? "Actif" : subscription?.status ?? "Inactif"}
-            </dd>
-          </div>
-          <div className="rounded-soft bg-action-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-wide text-action-700">
-              Expiration
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-ink">
-              {subscription?.endsAt
-                ? new Date(subscription.endsAt).toLocaleDateString("fr-FR")
-                : "—"}
-            </dd>
-          </div>
-        </dl>
-
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          {!hasPremium ? (
-            <>
-              <Link
-                href="/paiement"
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
-              >
-                <CreditCard className="h-4 w-4" strokeWidth={2} aria-hidden />
-                S&apos;abonner — 2 000 FCFA
-              </Link>
-              <Link
-                href="/paiement/manuel"
-                className="inline-flex h-11 w-full items-center justify-center rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
-              >
-                Payer via WhatsApp
-              </Link>
-            </>
-          ) : resumePath ? (
-            <Link
-              href={resumePath}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
-            >
-              <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
-              Reprendre
-            </Link>
-          ) : (
-            <Link
-              href="/app/catalogue"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 sm:w-auto"
-            >
-              <PlayCircle className="h-4 w-4" strokeWidth={2} aria-hidden />
-              {hasCourses ? "Continuer" : "Choisir une formation"}
-            </Link>
-          )}
-          <Link
-            href="/app/catalogue"
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
-          >
-            <Compass className="h-4 w-4" strokeWidth={2} aria-hidden />
-            Catalogue & catégories
-          </Link>
-          {hasCourses ? (
-            <Link
-              href="/app/mes-formations"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-brand border-2 border-brand-600 px-5 text-sm font-semibold text-brand-600 hover:bg-brand-50 sm:w-auto"
-            >
-              <BookOpen className="h-4 w-4" strokeWidth={2} aria-hidden />
-              Mes formations
-            </Link>
+      {/* En-tête épuré : salutation + statut abonnement en une ligne. */}
+      <div className="ui-card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h1 className="font-display text-xl font-bold text-ink sm:text-2xl">
+            Bonjour, {name}
+          </h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            {hasPremium
+              ? hasCourses
+                ? "Reprenez votre formation là où vous vous êtes arrêté."
+                : "Votre accès est actif. Choisissez une formation pour commencer."
+              : "Activez l’accès pour regarder les leçons premium et suivre votre progression."}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2 rounded-soft bg-canvas px-3 py-2 text-xs">
+          <span
+            className={`h-2 w-2 rounded-full ${hasPremium ? "bg-progress-500" : "bg-ink-muted/40"}`}
+            aria-hidden
+          />
+          <span className="font-semibold text-ink">
+            {hasPremium ? "Accès actif" : subscription?.status ?? "Accès inactif"}
+          </span>
+          {hasPremium && expiresLabel ? (
+            <span className="text-ink-muted">· jusqu’au {expiresLabel}</span>
           ) : null}
         </div>
       </div>
 
+      {/* Bannière abonnement (uniquement si pas d’accès). */}
       {!hasPremium ? (
-        <div className="ui-card border-action-200 bg-action-50/40 p-5 sm:p-6">
+        <div className="ui-card flex flex-col gap-3 border-action-200 bg-action-50/50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
           <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-soft bg-action-500 text-white">
-              <Lock className="h-5 w-5" strokeWidth={2} aria-hidden />
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-soft bg-action-500 text-white">
+              <Lock className="h-4 w-4" strokeWidth={2} aria-hidden />
             </span>
-            <div>
-              <h2 className="font-display text-lg font-semibold text-ink">
-                Parcours recommandé
-              </h2>
-              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-ink-muted">
-                <li>
-                  Explorez les{" "}
-                  <Link href="/app/catalogue" className="font-semibold text-brand-600 underline">
-                    catégories et formations
-                  </Link>
-                  .
-                </li>
-                <li>
-                  Activez l&apos;accès premium pour{" "}
-                  <strong className="text-ink">2&nbsp;000&nbsp;FCFA / 30 jours</strong>.
-                </li>
-                <li>
-                  La formation s&apos;installe dans{" "}
-                  <Link href="/app/mes-formations" className="font-semibold text-brand-600 underline">
-                    Mes formations
-                  </Link>{" "}
-                  dès que vous commencez une leçon — vous pouvez regarder et progresser.
-                </li>
-              </ol>
-            </div>
+            <p className="text-sm text-ink-muted">
+              <span className="font-semibold text-ink">2 000 FCFA / 30 jours</span> pour
+              débloquer toutes les leçons et suivre votre progression.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/paiement"
+              className="inline-flex h-10 items-center gap-2 rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              <CreditCard className="h-4 w-4" strokeWidth={2} aria-hidden />
+              S&apos;abonner
+            </Link>
+            <Link
+              href="/paiement/manuel"
+              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-white"
+            >
+              WhatsApp / Mobile Money
+            </Link>
           </div>
         </div>
       ) : null}
 
-      {!hasCourses ? (
+      {hasCourses && hero ? (
+        <>
+          <ContinueLearningHero
+            title={hero.course.title}
+            categoryName={hero.course.category?.name}
+            thumbnailUrl={hero.course.thumbnailUrl}
+            progressPercent={hero.enrollment.progressPercent}
+            resumeHref={heroResumeHref}
+            courseHref={`/app/formations/${hero.course.slug}`}
+            isCompleted={hero.enrollment.status === "completed"}
+          />
+
+          {rest.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-end justify-between gap-3">
+                <h2 className="font-display text-lg font-bold text-ink sm:text-xl">
+                  Vos formations en cours
+                </h2>
+                <Link
+                  href="/app/mes-formations"
+                  className="text-sm font-semibold text-brand-600 hover:underline"
+                >
+                  Tout voir
+                </Link>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {rest.map(({ enrollment, course }) => (
+                  <EnrollmentProgressCard
+                    key={enrollment.id}
+                    title={course.title}
+                    categoryName={course.category?.name}
+                    thumbnailUrl={course.thumbnailUrl}
+                    progressPercent={enrollment.progressPercent}
+                    href={`/app/formations/${course.slug}`}
+                    isCompleted={enrollment.status === "completed"}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/app/catalogue"
+              className="inline-flex h-10 items-center gap-2 rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+            >
+              <Compass className="h-4 w-4" strokeWidth={2} aria-hidden />
+              Explorer d&apos;autres catégories
+            </Link>
+          </div>
+        </>
+      ) : (
         <div className="space-y-4">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="font-display text-xl font-bold text-ink">
+              <h2 className="font-display text-lg font-bold text-ink sm:text-xl">
                 Commencez par une catégorie
               </h2>
               <p className="mt-1 text-sm text-ink-muted">
-                Aucune formation dans votre espace pour l&apos;instant. Choisissez un domaine.
+                Choisissez un domaine, ouvrez une formation, puis lancez la première leçon.
               </p>
             </div>
             <Link
@@ -193,7 +200,7 @@ export default async function TableauDeBordPage() {
             </Link>
           </div>
           {categories.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {categories.slice(0, 6).map((category, index) => (
                 <CategoryCard
                   key={category.id}
@@ -212,35 +219,6 @@ export default async function TableauDeBordPage() {
               </Link>
             </p>
           )}
-        </div>
-      ) : (
-        <div className="ui-card p-5 sm:p-6">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-progress-600" strokeWidth={2} aria-hidden />
-            <h2 className="font-display text-lg font-semibold text-ink">
-              Vos formations en cours
-            </h2>
-          </div>
-          <p className="mt-2 text-sm text-ink-muted">
-            Vous suivez {enrollments.length} formation
-            {enrollments.length > 1 ? "s" : ""}.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {resumePath ? (
-              <Link
-                href={resumePath}
-                className="inline-flex h-10 items-center rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-              >
-                Reprendre la dernière leçon
-              </Link>
-            ) : null}
-            <Link
-              href="/app/mes-formations"
-              className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
-            >
-              Ouvrir mes formations
-            </Link>
-          </div>
         </div>
       )}
     </section>

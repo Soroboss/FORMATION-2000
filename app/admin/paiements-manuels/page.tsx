@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import {
   approveManualPaymentAction,
   rejectManualPaymentAction,
@@ -6,7 +7,9 @@ import {
 import { listPendingManualPaymentRequests } from "@/server/repositories/manual-payments";
 import { Button } from "@/components/ui/button";
 import { ActionFlash } from "@/components/ui/action-flash";
-import { AdminEmptyState, AdminPageHeader } from "@/components/admin/ui";
+import { AdminEmptyState, AdminPageHeader, AdminStatCard } from "@/components/admin/ui";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPaiementsManuelsPage({
   searchParams,
@@ -15,14 +18,36 @@ export default async function AdminPaiementsManuelsPage({
 }) {
   const flash = await searchParams;
   const pending = await listPendingManualPaymentRequests();
+  const pendingTotal = pending.reduce((sum, r) => sum + r.amount, 0);
+  const currency = pending[0]?.currency ?? "XOF";
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={MessageCircle}
         title="Paiements WhatsApp"
         description="Vérifiez la capture, puis approuvez pour activer 30 jours d’accès."
+        actions={
+          <Link
+            href="/admin/paiements"
+            className="inline-flex h-10 items-center rounded-brand border-2 border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+          >
+            Historique
+          </Link>
+        }
       />
       <ActionFlash ok={flash.ok} error={flash.error} />
+
+      {pending.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <AdminStatCard label="En attente" value={pending.length} tone="warning" />
+          <AdminStatCard
+            label="Montant à confirmer"
+            value={`${pendingTotal.toLocaleString("fr-FR")} ${currency}`}
+            tone="info"
+          />
+        </div>
+      ) : null}
       {pending.length === 0 ? (
         <AdminEmptyState
           title="Aucune demande en attente"

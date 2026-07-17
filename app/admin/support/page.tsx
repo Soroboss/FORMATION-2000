@@ -1,6 +1,14 @@
 import Link from "next/link";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import { LifeBuoy } from "lucide-react";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
 import { listSupportTicketsForStaff } from "@/server/repositories/support";
+
+export const dynamic = "force-dynamic";
 
 const STATUS_OPTIONS = [
   { value: "open", label: "Ouvert" },
@@ -15,13 +23,28 @@ function ticketStatusLabel(status: string): string {
 
 export default async function AdminSupportPage() {
   const tickets = await listSupportTicketsForStaff();
+  const open = tickets.filter((t) => t.status === "open").length;
+  const inProgress = tickets.filter((t) => t.status === "in_progress").length;
+  const resolved = tickets.filter(
+    (t) => t.status === "resolved" || t.status === "closed",
+  ).length;
 
   return (
     <div className="space-y-6">
       <AdminPageHeader
+        icon={LifeBuoy}
         title="Support"
         description="Tickets ouverts par les apprenants. Ouvrez un ticket pour répondre dans le fil."
       />
+
+      {tickets.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminStatCard label="Tickets" value={tickets.length} />
+          <AdminStatCard label="Ouverts" value={open} tone="warning" />
+          <AdminStatCard label="En cours" value={inProgress} tone="info" />
+          <AdminStatCard label="Résolus" value={resolved} tone="success" />
+        </div>
+      ) : null}
 
       {tickets.length === 0 ? (
         <AdminEmptyState

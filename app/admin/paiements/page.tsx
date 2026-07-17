@@ -1,14 +1,30 @@
 import Link from "next/link";
+import { CreditCard } from "lucide-react";
 import { listAdminPayments } from "@/server/repositories/admin-payments";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
+import { RefundButton } from "@/components/admin/refund-button";
 import { paymentStatusLabel } from "@/lib/admin/labels";
+import { getSession } from "@/lib/auth/session";
+import { hasAnyRole } from "@/lib/permissions/roles";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminPaiementsPage() {
-  const payments = await listAdminPayments();
+  const [payments, session] = await Promise.all([listAdminPayments(), getSession()]);
+  const canRefund = hasAnyRole(session?.roles ?? [], ["admin", "super_admin"]);
+  const settled = payments.filter((p) => p.status === "successful");
+  const settledTotal = settled.reduce((sum, p) => sum + p.amount, 0);
+  const currency = payments[0]?.currency ?? "XOF";
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={CreditCard}
         title="Paiements"
         description="Historique global des transactions."
         actions={
@@ -20,6 +36,18 @@ export default async function AdminPaiementsPage() {
           </Link>
         }
       />
+
+      {payments.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <AdminStatCard label="Transactions" value={payments.length} />
+          <AdminStatCard label="Encaissées" value={settled.length} tone="success" />
+          <AdminStatCard
+            label="Montant encaissé"
+            value={`${settledTotal.toLocaleString("fr-FR")} ${currency}`}
+            tone="info"
+          />
+        </div>
+      ) : null}
 
       {payments.length === 0 ? (
         <AdminEmptyState
@@ -36,6 +64,7 @@ export default async function AdminPaiementsPage() {
                 <th className="px-4 py-3">Statut</th>
                 <th className="px-4 py-3">Fournisseur</th>
                 <th className="px-4 py-3">Date</th>
+                {canRefund ? <th className="px-4 py-3 text-right">Action</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -52,6 +81,15 @@ export default async function AdminPaiementsPage() {
                   <td className="px-4 py-3 text-ink-muted">
                     {new Date(p.initiatedAt).toLocaleString("fr-FR")}
                   </td>
+                  {canRefund ? (
+                    <td className="px-4 py-3 text-right">
+                      {p.status === "successful" ? (
+                        <RefundButton paymentId={p.id} />
+                      ) : (
+                        <span className="text-xs text-ink-muted">—</span>
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { Repeat } from "lucide-react";
 import { extendSubscriptionAction } from "@/server/actions/admin-ops";
 import { listAdminSubscriptions } from "@/server/repositories/admin-payments";
 import { Button } from "@/components/ui/button";
 import { ActionFlash } from "@/components/ui/action-flash";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
 import { subscriptionStatusLabel } from "@/lib/admin/labels";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminAbonnementsPage({
   searchParams,
@@ -13,14 +21,28 @@ export default async function AdminAbonnementsPage({
 }) {
   const flash = await searchParams;
   const subscriptions = await listAdminSubscriptions();
+  const active = subscriptions.filter((s) => s.status === "active").length;
+  const grace = subscriptions.filter((s) => s.status === "grace_period").length;
+  const expired = subscriptions.filter((s) => s.status === "expired").length;
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={Repeat}
         title="Abonnements"
         description="Liste et prolongation manuelle (30 jours typiques)."
       />
       <ActionFlash ok={flash.ok} error={flash.error} />
+
+      {subscriptions.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminStatCard label="Total" value={subscriptions.length} />
+          <AdminStatCard label="Actifs" value={active} tone="success" />
+          <AdminStatCard label="Période de grâce" value={grace} tone="warning" />
+          <AdminStatCard label="Expirés" value={expired} tone="danger" />
+        </div>
+      ) : null}
+
       {subscriptions.length === 0 ? (
         <AdminEmptyState
           title="Aucun abonnement"

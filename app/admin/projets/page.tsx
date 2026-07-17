@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { ClipboardCheck } from "lucide-react";
 import { reviewSubmissionAction } from "@/server/actions/admin-ops";
 import { listSubmissions } from "@/server/repositories/admin-learning";
 import { Button } from "@/components/ui/button";
 import { ActionFlash } from "@/components/ui/action-flash";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
 import { submissionStatusLabel } from "@/lib/admin/labels";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminProjetsPage({
   searchParams,
@@ -13,14 +21,27 @@ export default async function AdminProjetsPage({
 }) {
   const flash = await searchParams;
   const submissions = await listSubmissions();
+  const pending = submissions.filter((s) => s.status === "submitted").length;
+  const toFix = submissions.filter((s) => s.status === "needs_changes").length;
+  const approved = submissions.filter((s) => s.status === "approved").length;
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={ClipboardCheck}
         title="Exercices & projets"
         description="Revue des livrables soumis par les apprenants."
       />
       <ActionFlash ok={flash.ok} error={flash.error} />
+
+      {submissions.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <AdminStatCard label="Soumissions" value={submissions.length} />
+          <AdminStatCard label="À traiter" value={pending} tone="warning" />
+          <AdminStatCard label="À corriger" value={toFix} tone="info" />
+          <AdminStatCard label="Approuvées" value={approved} tone="success" />
+        </div>
+      ) : null}
       {submissions.length === 0 ? (
         <AdminEmptyState
           title="Aucune soumission"

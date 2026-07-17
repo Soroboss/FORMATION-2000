@@ -1,10 +1,18 @@
 import Link from "next/link";
+import { Users } from "lucide-react";
 import { listMembers, listStaffMembers } from "@/server/repositories/admin-members";
 import { getSession } from "@/lib/auth/session";
 import { assignableRolesForActor, isStaff } from "@/lib/permissions/roles";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
 import { InviteCollaboratorForm } from "@/components/admin/invite-collaborator-form";
 import { memberStatusLabel, roleLabel } from "@/lib/admin/labels";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminMembresPage({
   searchParams,
@@ -27,12 +35,23 @@ export default async function AdminMembresPage({
       })
     : source;
 
+  const learners = allMembers.filter((m) => !isStaff(m.roles)).length;
+  const activeMembers = allMembers.filter((m) => m.status === "active").length;
+
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={Users}
         title="Membres & équipe"
         description="Apprenants inscrits et collaborateurs de l’administration (rôles & restrictions)."
       />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminStatCard label="Membres" value={allMembers.length} />
+        <AdminStatCard label="Apprenants" value={learners} tone="info" />
+        <AdminStatCard label="Équipe" value={staff.length} tone="success" />
+        <AdminStatCard label="Comptes actifs" value={activeMembers} tone="success" />
+      </div>
 
       <div className="ui-card space-y-4 border-2 border-brand-200 p-5 sm:p-6">
         <div>
@@ -72,11 +91,11 @@ export default async function AdminMembresPage({
             name="q"
             defaultValue={params.q ?? ""}
             placeholder="Rechercher e-mail ou nom…"
-            className="h-10 w-full min-w-0 rounded-lg border border-slate-300 px-3 text-sm sm:min-w-[220px]"
+            className="h-10 w-full min-w-0 rounded-brand border border-canvas-border bg-canvas-card px-3 text-sm text-ink focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 sm:min-w-[220px]"
           />
           <button
             type="submit"
-            className="h-10 shrink-0 rounded-brand bg-slate-900 px-3 text-sm font-semibold text-white"
+            className="h-10 shrink-0 rounded-brand bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Filtrer
           </button>
@@ -125,7 +144,7 @@ export default async function AdminMembresPage({
                   </td>
                   <td className="px-4 py-3 text-xs">
                     {isStaff(m.roles) ? (
-                      <span className="font-semibold text-slate-900">Équipe</span>
+                      <span className="font-semibold text-ink">Équipe</span>
                     ) : (
                       <span className="text-ink-muted">Apprenant</span>
                     )}

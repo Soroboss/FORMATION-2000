@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SlidersHorizontal } from "lucide-react";
 import {
   updateManualPaymentConfigAction,
   updateSettingAction,
@@ -282,6 +283,7 @@ export default async function AdminParametresPage({
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={SlidersHorizontal}
         title="Paramètres"
         description="Application, paiement, et permissions de l’équipe d’administration."
         actions={

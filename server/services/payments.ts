@@ -14,6 +14,15 @@ import {
   markPaymentEventProcessed,
   updatePaymentStatus,
 } from "@/server/repositories/payments";
+import {
+  evaluateCoupon,
+  normalizeCouponCode,
+} from "@/lib/coupons/apply";
+import {
+  getCouponByCode,
+  hasUserRedeemedCoupon,
+  recordCouponRedemption,
+} from "@/server/repositories/coupons";
 import type { PaymentWebhookEvent } from "@/types/payments";
 
 function hashPayload(payload: unknown): string {
@@ -25,6 +34,7 @@ export async function initializeCheckout(input: {
   email: string;
   displayName?: string | null;
   planSlug?: string;
+  couponCode?: string | null;
 }) {
   const plan =
     (input.planSlug ? await getPlanBySlug(input.planSlug) : null) ??
@@ -34,6 +44,32 @@ export async function initializeCheckout(input: {
     throw new Error("PLAN_NOT_FOUND");
   }
 
+  // Application éventuelle d'un code promo (validation 100 % serveur).
+  let amount = plan.priceAmount;
+  let discountAmount = 0;
+  let appliedCouponCode: string | null = null;
+
+  const rawCode = input.couponCode ? normalizeCouponCode(input.couponCode) : "";
+  if (rawCode) {
+    const coupon = await getCouponByCode(rawCode);
+    if (!coupon) {
+      throw new Error("COUPON_INVALID");
+    }
+    const alreadyRedeemedByUser = await hasUserRedeemedCoupon(coupon.id, input.userId);
+    const evaluation = evaluateCoupon(coupon, {
+      planId: plan.id,
+      amount: plan.priceAmount,
+      currency: plan.currency,
+      alreadyRedeemedByUser,
+    });
+    if (!evaluation.valid) {
+      throw new Error(`COUPON_REJECTED:${evaluation.reason}`);
+    }
+    amount = evaluation.finalAmount;
+    discountAmount = evaluation.discount;
+    appliedCouponCode = coupon.code;
+  }
+
   const provider = getPaymentProvider();
   const internalReference = createInternalPaymentReference();
   const appUrl = getAppUrl();
@@ -41,7 +77,7 @@ export async function initializeCheckout(input: {
   const session = await provider.initializePayment({
     userId: input.userId,
     planId: plan.id,
-    amount: plan.priceAmount,
+    amount,
     currency: plan.currency,
     internalReference,
     customerEmail: input.email,
@@ -51,6 +87,7 @@ export async function initializeCheckout(input: {
     metadata: {
       planSlug: plan.slug,
       userId: input.userId,
+      ...(appliedCouponCode ? { couponCode: appliedCouponCode } : {}),
     },
   });
 
@@ -60,15 +97,25 @@ export async function initializeCheckout(input: {
     provider: provider.name,
     providerReference: session.providerReference,
     internalReference,
-    amount: plan.priceAmount,
+    amount,
     currency: plan.currency,
     status: "pending",
-    metadata: { planSlug: plan.slug },
+    couponCode: appliedCouponCode,
+    discountAmount,
+    metadata: {
+      planSlug: plan.slug,
+      ...(appliedCouponCode
+        ? { couponCode: appliedCouponCode, discountAmount }
+        : {}),
+    },
   });
 
   return {
     payment,
     plan,
+    amount,
+    discountAmount,
+    couponCode: appliedCouponCode,
     checkoutUrl: session.checkoutUrl,
     provider: provider.name,
   };
@@ -142,6 +189,22 @@ export async function processPaymentWebhook(
       failedAt: null,
       subscriptionId: subscription.id,
     });
+
+    if (payment.couponCode) {
+      try {
+        const coupon = await getCouponByCode(payment.couponCode);
+        if (coupon) {
+          await recordCouponRedemption({
+            couponId: coupon.id,
+            userId: payment.userId,
+            paymentId: payment.id,
+            amountDiscounted: payment.discountAmount,
+          });
+        }
+      } catch {
+        // L'enregistrement d'un coupon ne doit jamais bloquer l'activation.
+      }
+    }
 
     await markPaymentEventProcessed(providerName, event.eventId);
 

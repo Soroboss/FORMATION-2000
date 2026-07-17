@@ -63,7 +63,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         {pending ? "Connexion…" : "Se connecter"}
       </Button>
 
-      <p className="text-center text-sm text-slate-600">
+      <p className="text-center text-sm text-ink-muted">
         Pas encore de compte ?{" "}
         <Link href="/inscription" className="font-semibold text-brand-700 hover:underline">
           Créer un compte

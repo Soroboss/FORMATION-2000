@@ -59,6 +59,8 @@ function mapPayment(row: Record<string, unknown>): Payment {
     confirmedAt: (row.confirmed_at as string | null) ?? null,
     failedAt: (row.failed_at as string | null) ?? null,
     initiatedAt: String(row.initiated_at ?? row.created_at),
+    couponCode: (row.coupon_code as string | null) ?? null,
+    discountAmount: Number(row.discount_amount ?? 0),
   };
 }
 
@@ -157,7 +159,7 @@ export async function listPaymentsForUser(userId: string): Promise<Payment[]> {
   const { data, error } = await client.database
     .from("payments")
     .select(
-      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, created_at",
+      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, coupon_code, discount_amount, created_at",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
@@ -174,7 +176,7 @@ export async function getPaymentByInternalReference(
   const { data, error } = await client.database
     .from("payments")
     .select(
-      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, created_at",
+      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, coupon_code, discount_amount, created_at",
     )
     .eq("internal_reference", internalReference)
     .maybeSingle();
@@ -190,7 +192,7 @@ export async function getPaymentByProviderReference(
   const { data, error } = await client.database
     .from("payments")
     .select(
-      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, created_at",
+      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, coupon_code, discount_amount, created_at",
     )
     .eq("provider_reference", providerReference)
     .maybeSingle();
@@ -208,6 +210,8 @@ export async function createPaymentRecord(input: {
   amount: number;
   currency: string;
   status: PaymentStatus;
+  couponCode?: string | null;
+  discountAmount?: number;
   metadata?: Record<string, unknown>;
 }): Promise<Payment> {
   const client = requireServiceClient();
@@ -223,11 +227,13 @@ export async function createPaymentRecord(input: {
         amount: input.amount,
         currency: input.currency,
         status: input.status,
+        coupon_code: input.couponCode ?? null,
+        discount_amount: input.discountAmount ?? 0,
         metadata: input.metadata ?? {},
       },
     ])
     .select(
-      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, created_at",
+      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, coupon_code, discount_amount, created_at",
     )
     .single();
 

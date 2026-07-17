@@ -1,9 +1,17 @@
+import { LayoutGrid } from "lucide-react";
 import { saveCategoryAction } from "@/server/actions/admin-catalog";
 import { listAdminCategories } from "@/server/repositories/admin-catalog";
 import { Button } from "@/components/ui/button";
 import { ActionFlash } from "@/components/ui/action-flash";
 import { ImageUploadField } from "@/components/admin/image-upload-field";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminCategoriesPage({
   searchParams,
@@ -12,13 +20,23 @@ export default async function AdminCategoriesPage({
 }) {
   const flash = await searchParams;
   const categories = await listAdminCategories();
+  const activeCount = categories.filter((c) => c.isActive).length;
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={LayoutGrid}
         title="Catégories"
         description="Organisation du catalogue visible côté apprenant. Importez une image de couverture."
       />
+
+      {categories.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <AdminStatCard label="Catégories" value={categories.length} />
+          <AdminStatCard label="Actives" value={activeCount} tone="success" />
+          <AdminStatCard label="Inactives" value={categories.length - activeCount} tone="warning" />
+        </div>
+      ) : null}
 
       <ActionFlash ok={flash.ok} error={flash.error} />
       <form

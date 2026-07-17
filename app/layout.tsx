@@ -3,6 +3,7 @@ import { Inter, Poppins } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { getAppName, getAppUrl } from "@/lib/utils";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -86,6 +87,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Aller au contenu
         </a>
         <div id="contenu-principal">{children}</div>
+        <ServiceWorkerRegister />
         <Analytics />
         <SpeedInsights />
       </body>

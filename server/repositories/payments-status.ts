@@ -18,6 +18,8 @@ function mapPayment(row: Record<string, unknown>): Payment {
     confirmedAt: (row.confirmed_at as string | null) ?? null,
     failedAt: (row.failed_at as string | null) ?? null,
     initiatedAt: String(row.initiated_at ?? row.created_at),
+    couponCode: (row.coupon_code as string | null) ?? null,
+    discountAmount: Number(row.discount_amount ?? 0),
   };
 }
 
@@ -32,7 +34,7 @@ export async function tryGetPaymentAsUser(
   const { data, error } = await client.database
     .from("payments")
     .select(
-      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, created_at",
+      "id, user_id, subscription_id, plan_id, provider, provider_reference, internal_reference, amount, currency, status, payment_method, confirmed_at, failed_at, initiated_at, coupon_code, discount_amount, created_at",
     )
     .eq("internal_reference", internalReference)
     .eq("user_id", userId)

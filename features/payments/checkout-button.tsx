@@ -9,9 +9,11 @@ import { Alert } from "@/components/ui/alert";
 export function CheckoutButton({
   planSlug = "acces-mensuel",
   label = "Payer 2 000 FCFA",
+  allowCoupon = true,
 }: {
   planSlug?: string;
   label?: string;
+  allowCoupon?: boolean;
 }) {
   const [result, setResult] = useState<CheckoutActionResult | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,6 +28,25 @@ export function CheckoutButton({
       }}
     >
       <input type="hidden" name="planSlug" value={planSlug} />
+      {allowCoupon ? (
+        <div className="mb-3">
+          <label
+            htmlFor="couponCode"
+            className="mb-1 block text-sm font-medium text-ink-muted"
+          >
+            Code promo (facultatif)
+          </label>
+          <input
+            id="couponCode"
+            name="couponCode"
+            type="text"
+            autoCapitalize="characters"
+            autoComplete="off"
+            placeholder="EX : BIENVENUE"
+            className="h-11 w-full rounded-brand border border-canvas-border bg-canvas-card px-3 text-sm uppercase text-ink placeholder:text-ink-muted/60 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          />
+        </div>
+      ) : null}
       {result && !result.success ? (
         <Alert variant="error" className="mb-3">
           <p>{result.error}</p>

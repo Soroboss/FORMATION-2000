@@ -1,11 +1,19 @@
 import Link from "next/link";
+import { BookOpen } from "lucide-react";
 import { listAdminCourses, listAdminCategories } from "@/server/repositories/admin-catalog";
 import { deleteCourseAction, publishCourseAction } from "@/server/actions/admin-catalog";
 import { Button } from "@/components/ui/button";
-import { AdminEmptyState, AdminPageHeader, StatusBadge } from "@/components/admin/ui";
+import {
+  AdminEmptyState,
+  AdminPageHeader,
+  AdminStatCard,
+  StatusBadge,
+} from "@/components/admin/ui";
 import { ActionFlash } from "@/components/ui/action-flash";
 import { BulkCreateFormationsForm } from "@/components/admin/bulk-create-formations-form";
 import { accessTypeLabel, courseStatusLabel } from "@/lib/admin/labels";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminFormationsPage({
   searchParams,
@@ -19,10 +27,13 @@ export default async function AdminFormationsPage({
   ]);
   const createdCount = created ? Number(created) : 0;
   const activeCategories = categories.filter((c) => c.isActive);
+  const published = courses.filter((c) => c.status === "published").length;
+  const drafts = courses.filter((c) => c.status !== "published").length;
 
   return (
     <section className="space-y-6">
       <AdminPageHeader
+        icon={BookOpen}
         title="Formations"
         description="Ajoutez plusieurs formations d’un coup, puis gérez-les ici."
         actions={
@@ -34,6 +45,14 @@ export default async function AdminFormationsPage({
           </Link>
         }
       />
+
+      {courses.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <AdminStatCard label="Formations" value={courses.length} />
+          <AdminStatCard label="Publiées" value={published} tone="success" />
+          <AdminStatCard label="Brouillons" value={drafts} tone="warning" />
+        </div>
+      ) : null}
 
       <ActionFlash ok={ok} error={error} />
 

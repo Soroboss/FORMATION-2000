@@ -56,6 +56,8 @@ export type Payment = {
   confirmedAt: string | null;
   failedAt: string | null;
   initiatedAt: string;
+  couponCode: string | null;
+  discountAmount: number;
 };
 
 export type InitializePaymentInput = {

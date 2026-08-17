@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Loader2, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ShellNavItem = {
@@ -17,6 +17,22 @@ type ShellNavProps = {
   items: ShellNavItem[];
   ariaLabel: string;
 };
+
+/**
+ * Rendu dans un <Link> : affiche une roue tant que la navigation n’a pas abouti,
+ * pour que le clic ait toujours une réponse visible.
+ */
+function NavLinkLabel({ label }: { label: string }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span className="flex items-center justify-between gap-2">
+      <span className="min-w-0 truncate">{label}</span>
+      {pending ? (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+      ) : null}
+    </span>
+  );
+}
 
 /**
  * Sidebar on md+, drawer on small screens — avoids endless horizontal chip scroll.
@@ -91,7 +107,7 @@ export function ShellNav({ items, ariaLabel }: ShellNavProps) {
             href={item.href}
             className={linkClass(item.href, item.exact)}
           >
-            {item.label}
+            <NavLinkLabel label={item.label} />
           </Link>
         ))}
       </nav>
@@ -131,7 +147,7 @@ export function ShellNav({ items, ariaLabel }: ShellNavProps) {
                   className={linkClass(item.href, item.exact)}
                   onClick={() => setOpen(false)}
                 >
-                  {item.label}
+                  <NavLinkLabel label={item.label} />
                 </Link>
               ))}
             </nav>

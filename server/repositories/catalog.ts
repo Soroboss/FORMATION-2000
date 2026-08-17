@@ -139,27 +139,64 @@ function mapYouTube(row: Record<string, unknown> | null): YouTubeSourcePublic | 
   };
 }
 
-async function countLessonsForCourse(
+/** Découpe une liste d’ids pour garder les URLs `.in(...)` raisonnables. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+const IN_CHUNK_SIZE = 200;
+
+/**
+ * Nombre de leçons publiées par course_id, en 2 requêtes groupées par lot
+ * (et non 2 requêtes PAR formation : le catalogue complet passait de ~136
+ * allers-retours séquentiels — ~18 s — à 2).
+ */
+async function countLessonsByCourse(
   client: NonNullable<Awaited<ReturnType<typeof getCatalogClient>>>,
-  courseId: string,
-): Promise<number> {
-  const { data: modules } = await client.database
-    .from("modules")
-    .select("id")
-    .eq("course_id", courseId);
+  courseIds: string[],
+): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  if (courseIds.length === 0) return counts;
 
-  const moduleIds = Array.isArray(modules)
-    ? modules.map((m) => String((m as { id: string }).id))
-    : [];
-  if (moduleIds.length === 0) return 0;
+  const moduleChunks = await Promise.all(
+    chunk(courseIds, IN_CHUNK_SIZE).map(async (ids) => {
+      const { data } = await client.database
+        .from("modules")
+        .select("id, course_id")
+        .in("course_id", ids);
+      return Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+    }),
+  );
 
-  const { data: lessons } = await client.database
-    .from("lessons")
-    .select("id")
-    .in("module_id", moduleIds)
-    .eq("status", "published");
+  const courseIdByModuleId = new Map<string, string>();
+  for (const row of moduleChunks.flat()) {
+    if (!row.id || !row.course_id) continue;
+    courseIdByModuleId.set(String(row.id), String(row.course_id));
+  }
+  if (courseIdByModuleId.size === 0) return counts;
 
-  return Array.isArray(lessons) ? lessons.length : 0;
+  const lessonChunks = await Promise.all(
+    chunk([...courseIdByModuleId.keys()], IN_CHUNK_SIZE).map(async (ids) => {
+      const { data } = await client.database
+        .from("lessons")
+        .select("module_id")
+        .in("module_id", ids)
+        .eq("status", "published");
+      return Array.isArray(data) ? (data as Record<string, unknown>[]) : [];
+    }),
+  );
+
+  for (const row of lessonChunks.flat()) {
+    const courseId = courseIdByModuleId.get(String(row.module_id));
+    if (!courseId) continue;
+    counts[courseId] = (counts[courseId] ?? 0) + 1;
+  }
+
+  return counts;
 }
 
 export async function listCategories(): Promise<Category[]> {
@@ -235,6 +272,9 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
     query = query.eq("category_id", category.id);
   }
 
+  // Lancé en parallèle de la requête courses (aucun await entre les deux).
+  const categoriesPromise = listCategories().catch(() => [] as Category[]);
+
   const { data, error } = await query;
   if (error) {
     console.error(
@@ -248,7 +288,7 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
   }
   if (!Array.isArray(data)) return [];
 
-  const categories = await listCategories();
+  const categories = await categoriesPromise;
   const categoryById = new Map(categories.map((c) => [c.id, c]));
 
   let rows = data as unknown as Record<string, unknown>[];
@@ -301,12 +341,14 @@ export async function listCourses(filters: CourseFilters = {}): Promise<CourseLi
       });
   }
 
-  const items: CourseListItem[] = [];
-  for (const row of rows) {
-    const lessonCount = await countLessonsForCourse(client, String(row.id));
-    items.push(mapCourseListItem(row, lessonCount, categoryById));
-  }
-  return items;
+  const lessonCounts = await countLessonsByCourse(
+    client,
+    rows.map((row) => String(row.id)),
+  );
+
+  return rows.map((row) =>
+    mapCourseListItem(row, lessonCounts[String(row.id)] ?? 0, categoryById),
+  );
 }
 
 export async function getCourseBySlug(slug: string): Promise<CourseDetail | null> {
